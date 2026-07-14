@@ -1,0 +1,52 @@
+{
+  "name": "train-system",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "start": "npm-run-all --parallel start:frontend start:backend",
+    "start:frontend": "nx serve frontend",
+    "start:backend": "nx serve backend",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t test",
+    "seed": "node tools/seed/seed.mjs"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
+    "@nestjs/cli": "^11.0.0",
+    "@types/leaflet": "^1.9.21",
+    "@types/node": "^24.0.0",
+    "npm-run-all": "^4.1.5",
+    "nx": "^20.0.0",
+    "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/platform-browser-dynamic": "^20.0.0",
+    "@angular/router": "^20.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/testing": "^11.0.0",
+    "@types/jest": "^30.0.0",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
+    "jest": "^30.0.0",
+    "leaflet": "^1.9.0",
+    "pg": "^8.4.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0",
+    "ts-jest": "^29.3.0",
+    "typeorm": "^0.3.8",
+    "zone.js": "^0.15.0"
+  }
+}

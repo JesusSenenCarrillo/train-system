@@ -1,0 +1,42 @@
+node_modules/
+
+# Nx cache and workspace metadata
+.nx/
+
+# Build outputs
+dist/
+tmp/
+coverage/
+out-tsc/
+
+# App-specific build/cache outputs
+apps/*/dist/
+apps/frontend/.angular/
+
+# Generated local data
+tools/seed/output/
+
+# Generated JS declaration/build artifacts in TS source lib
+libs/shared-types/src/**/*.js
+libs/shared-types/src/**/*.js.map
+libs/shared-types/src/**/*.d.ts
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Local tool state
+.claude/worktrees
+.claude/settings.local.json
