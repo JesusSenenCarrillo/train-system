@@ -1,0 +1,37 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: trainuser
+      POSTGRES_PASSWORD: trainpass
+      POSTGRES_DB: train_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://trainuser:trainpass@postgres:5432/train_db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - '4200:4200'
+    depends_on:
+      - backend
+    environment:
+      API_PROXY_TARGET: http://backend:3000
+
+volumes:
+  pgdata:

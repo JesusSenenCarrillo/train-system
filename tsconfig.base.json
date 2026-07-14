@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@train-system/shared-types": ["libs/shared-types/src/index.ts"],
+      "@train-system/algorithms": ["libs/algorithms/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

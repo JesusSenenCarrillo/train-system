@@ -1,0 +1,43 @@
+<main class="container">
+  <section class="panel">
+    <h1>Sistema de replanificación ferroviaria</h1>
+    <p>Demo de simulación de incidencias y rutas alternativas.</p>
+    <div id="map"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Simulación de incidencia</h2>
+    <label>Tren</label>
+    <select [(ngModel)]="selectedTrainId">
+      <option value="">Selecciona un tren</option>
+      <option *ngFor="let train of trains" [value]="train.id">{{ train.name }}</option>
+    </select>
+
+    <label>Estación afectada</label>
+    <select [(ngModel)]="selectedStationId">
+      <option value="">Selecciona una estación</option>
+      <option *ngFor="let station of stations" [value]="station.id">{{ station.name }}</option>
+    </select>
+
+    <label>Tipo de incidencia</label>
+    <select [(ngModel)]="incidentType">
+      <option value="delay">Retraso</option>
+      <option value="failure">Avería</option>
+      <option value="track_blocked">Vía bloqueada</option>
+    </select>
+
+    <label>Descripción</label>
+    <textarea [(ngModel)]="description"></textarea>
+
+    <button (click)="createIncident()">Crear incidencia</button>
+
+    <h3>Resultados</h3>
+    <div *ngIf="rerouteResult" class="card">
+      <strong>Plan #{{ rerouteResult.id }}</strong>
+      <p>Pasajeros afectados: {{ rerouteResult.affectedPassengers }}</p>
+      <ul>
+        <li *ngFor="let route of rerouteResult.suggestedRoutes">{{ route }}</li>
+      </ul>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "rootDir": "../../",
+    "outDir": "../../dist/apps/backend"
+  },
+  "include": ["src/**/*.ts", "../../libs/**/*.ts"],
+  "exclude": ["dist", "**/*.spec.ts", "**/*.test.ts"]
+}
