@@ -3,9 +3,9 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: trainuser
-      POSTGRES_PASSWORD: trainpass
-      POSTGRES_DB: train_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: barcelona1562
+      POSTGRES_DB: postgres
     ports:
       - '5432:5432'
     volumes:
@@ -20,7 +20,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgres://trainuser:trainpass@postgres:5432/train_db
+      DATABASE_URL: postgres://postgres:barcelona1562@postgres:5432/postgres
 
   frontend:
     build:

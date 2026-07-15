@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { Train, Station, IncidentPayload, ReroutePlan } from '@train-system/shared-types';
+import {tap} from "rxjs";
 
 @Component({
   selector: 'app-root',
@@ -32,7 +33,7 @@ export class AppComponent implements OnInit {
       this.stations = stations;
       this.http.get<Train[]>('/api/trains').subscribe((trains) => {
         this.trains = trains;
-        this.initMap();
+        // this.initMap();
       });
     });
   }
