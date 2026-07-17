@@ -18,27 +18,101 @@ export interface Route {
 
 export interface Train {
   id: number;
-  name: string;
-  type: string;
-  capacity: number;
-  status: string;
+  trainId: string;
+  source: 'LD' | 'COMMUTER';
+  serviceType: 'LD' | 'COMMUTER';
+  tripId?: string | null;
+  commercialCode?: string | null;
+  productCode?: number | null;
+  originStationId?: string | null;
+  destinationStationId?: string | null;
+  previousStationId?: string | null;
+  nextStationId?: string | null;
+  nextStationArrivalAt?: string | null;
+  currentStopId?: string | null;
+  latitude: number;
+  longitude: number;
+  currentStatus: string;
+  delayMinutes: number;
+  delaySeconds: number;
+  updatedAt: number;
+  platform?: string | null;
+  vehicleId?: string | null;
+  vehicleLabel?: string | null;
+  rollingStock?: string | null;
+  accessible: boolean;
+  metadata?: Record<string, unknown> | null;
+  raw?: Record<string, unknown> | null;
 }
 
 export interface IncidentPayload {
-  trainId: number;
-  stationId: number;
-  type: string;
-  description: string;
+  trainId?: number | string | null;
+  stationId?: number | string | null;
+  type?: string;
+  description?: string;
+  id?: string;
+  alert?: {
+    activePeriod?: Array<{
+      start?: string;
+      end?: string;
+    }>;
+    informedEntity?: Array<{
+      routeId?: string;
+      stopId?: string;
+      trip?: {
+        tripId?: string;
+      };
+    }>;
+    descriptionText?: {
+      translation?: Array<{
+        text?: string;
+        language?: string;
+      }>;
+    };
+  };
 }
 
 export interface Incident {
   id: number;
-  trainId: number;
-  stationId: number;
+  externalId?: string | null;
+  source: 'MANUAL' | 'GTFS_RT';
+  trainId?: string | null;
+  stationId?: string | null;
+  routeIds: string[];
   type: string;
   description: string;
-  timestamp: string;
+  language?: string | null;
+  startedAt: string;
+  endedAt?: string | null;
+  updatedAt: string;
   status: string;
+  metadata?: Record<string, unknown> | null;
+  raw?: Record<string, unknown> | null;
+}
+
+export interface ScheduleUpdate {
+  id: string;
+  tripUpdate: {
+    trip: {
+      tripId: string;
+      scheduleRelationship: string;
+    };
+    stopTimeUpdate: Array<{
+      arrival?: {
+        delay?: number;
+        time?: string;
+      };
+      departure?: {
+        delay?: number;
+        time?: string;
+      };
+      stopId: string;
+    }>;
+    vehicle?: {
+      wheelchairAccessible?: string;
+    };
+    delay?: number;
+  };
 }
 
 export interface ReroutePlan {

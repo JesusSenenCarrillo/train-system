@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { TrainService } from './train.service';
+import {Controller, Get} from '@nestjs/common';
+import {TrainService} from './train.service';
 
 @Controller('trains')
 export class TrainController {
@@ -9,4 +9,9 @@ export class TrainController {
   findAll() {
     return this.trainService.findAll();
   }
+
+    @Get('schedules')
+    findScheduleUpdates() {
+        return this.trainService.findScheduleUpdates();
+    }
 }
