@@ -1,0 +1,90 @@
+Development course from here
+1.
+Freeze data contracts (Week 1)
+◦
+Define canonical models for: Station, TrainState, ScheduleUpdate, Incident, ReroutePlan.
+◦
+Mark source priority: GTFS-RT primary, tiempo-real enrichment secondary.
+◦
+Add schema validators and versioned normalizers per endpoint.
+2.
+Build ingestion + normalization pipeline (Week 1–2)
+◦
+Poll feeds on schedule (vehicle_positions, trip_updates, alerts, flotaLD, estaciones).
+◦
+Normalize into one internal model and store raw payload snapshots for audit/debug.
+◦
+Add deduplication/idempotency and stale-data guards.
+3.
+Implement incident engine (Week 2–3)
+◦
+Commuter: direct incidents from alerts.json.
+◦
+LD: inferred incidents from delays + movement anomalies (trip_updates_LD, vehicle_positions_LD).
+◦
+Output structured incident fields: category, severity, confidence, affected stations/routes.
+4.
+Station/entity resolution layer (Week 3)
+◦
+Build alias/fuzzy matching for station names ↔ codes.
+◦
+Resolve route/trip/station references across all feeds.
+◦
+Add confidence scoring and fallback handling.
+5.
+Rerouting core (Week 3–4)
+◦
+Build graph model from stations/routes/schedules.
+◦
+Apply incident constraints (blocked station/edge, speed penalty, delay penalty).
+◦
+Generate candidate reroutes and choose best by ETA + transfer count + reliability.
+6.
+Backend APIs for FE consumption (Week 4)
+◦
+/snapshot unified read model (stations, trains, incidents, schedules).
+◦
+/incidents/live and /incidents/inferred.
+◦
+/reroute/simulate and /reroute/recommendations.
+◦
+Keep all responses already normalized for your signal store.
+7.
+AI extraction layer (Week 5)
+◦
+Add LLM/NLP structured extraction for alert text (type, affected entities, severity, reroute-needed).
+◦
+Gate AI outputs with rules + confidence thresholds before actioning.
+◦
+Persist extraction output for explainability.
+8.
+Frontend productization (Week 5–6)
+◦
+Finish signal-store-driven dashboard flows: live map, incident timeline, reroute suggestions, confidence/explanation panel.
+◦
+Add operator controls to override/confirm reroutes.
+9.
+Reliability + observability (Week 6)
+◦
+Metrics: feed freshness, incident precision, reroute latency, confidence drift.
+◦
+Alerts for feed outages/schema drift.
+◦
+Replay tooling from stored raw payloads.
+10.
+Validation and rollout (Week 7+)
+3.
+Backtest with historical payloads.
+4.
+Run shadow mode (recommend only, no automatic action).
+5.
+Gradually enable automated reroute triggers by confidence tier.
+Immediate next sprint (start now)
+•
+Finish canonical schema + normalizers.
+•
+Stand up ingestion jobs + persistence.
+•
+Ship first LD inferred-incident ruleset.
+•
+Expose one unified /snapshot endpoint for your current FE store.

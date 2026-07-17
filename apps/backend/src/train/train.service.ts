@@ -1,27 +1,134 @@
-import { Injectable } from '@nestjs/common';
-import { Train } from '@train-system/shared-types';
+import {Injectable} from '@nestjs/common';
+import {ScheduleUpdate, Train} from '@train-system/shared-types';
 
 @Injectable()
 export class TrainService {
   private readonly trains: Train[] = [
-    { id: 1, name: 'AVE Madrid-Barcelona', type: 'AVE', capacity: 450, status: 'on_time' },
-    { id: 2, name: 'AVE Madrid-Sevilla', type: 'AVE', capacity: 430, status: 'delayed' },
-    { id: 3, name: 'Alvia Valencia-Madrid', type: 'Alvia', capacity: 320, status: 'on_time' },
-    { id: 4, name: 'Avlo Barcelona-Valencia', type: 'Avlo', capacity: 300, status: 'on_time' },
-    { id: 5, name: 'Intercity Zaragoza-Madrid', type: 'Intercity', capacity: 280, status: 'on_time' },
-    { id: 6, name: 'AVE Málaga-Madrid', type: 'AVE', capacity: 410, status: 'on_time' },
-    { id: 7, name: 'Avant Alicante-Madrid', type: 'Avant', capacity: 260, status: 'delayed' },
-    { id: 8, name: 'Alvia Bilbao-Madrid', type: 'Alvia', capacity: 300, status: 'on_time' },
-    { id: 9, name: 'AVE Madrid-Barcelona', type: 'AVE', capacity: 440, status: 'on_time' },
-    { id: 10, name: 'Euromed Valencia-Barcelona', type: 'Euromed', capacity: 350, status: 'on_time' },
-    { id: 11, name: 'Avant Madrid-Toledo', type: 'Avant', capacity: 230, status: 'on_time' },
-    { id: 12, name: 'Intercity Madrid-Córdoba', type: 'Intercity', capacity: 290, status: 'on_time' },
-    { id: 13, name: 'AVE Madrid-Murcia', type: 'AVE', capacity: 420, status: 'on_time' },
-    { id: 14, name: 'AVE Barcelona-Málaga', type: 'AVE', capacity: 410, status: 'delayed' },
-    { id: 15, name: 'Avlo Madrid-Zaragoza', type: 'Avlo', capacity: 290, status: 'on_time' }
+    {
+      id: 1,
+      trainId: 'LD-71800',
+      source: 'LD',
+      serviceType: 'LD',
+      tripId: null,
+      commercialCode: '71800',
+      productCode: 16,
+      originStationId: '05193',
+      destinationStationId: '21010',
+      previousStationId: '05127',
+      nextStationId: '05127',
+      nextStationArrivalAt: '2026-07-16T09:16',
+      currentStopId: null,
+      latitude: 43.587063,
+      longitude: -7.9344945,
+      currentStatus: 'EN_ROUTE',
+      delayMinutes: 6,
+      delaySeconds: 360,
+      updatedAt: 1784186863,
+      platform: '4',
+      vehicleId: null,
+      vehicleLabel: null,
+      rollingStock: '527019',
+      accessible: false,
+      metadata: {
+        provider: 'flotaLD',
+      },
+      raw: {
+        codComercial: '71800',
+        codEstAnt: '05127',
+        codEstSig: '05127',
+        horaLlegadaSigEst: '2026-07-16T09:16',
+        codProduct: 16,
+        codOrigen: '05193',
+        codDestino: '21010',
+        accesible: false,
+        ultRetraso: '6',
+        latitud: 43.587063,
+        longitud: -7.9344945,
+        time: 1784186863,
+        p: '4',
+        mat: '527019',
+      },
+    },
+    {
+      id: 2,
+      trainId: 'VP_C4-23615',
+      source: 'COMMUTER',
+      serviceType: 'COMMUTER',
+      tripId: '3094J23615C4',
+      commercialCode: null,
+      productCode: null,
+      originStationId: null,
+      destinationStationId: null,
+      previousStationId: null,
+      nextStationId: null,
+      nextStationArrivalAt: null,
+      currentStopId: '51110',
+      latitude: 37.362885,
+      longitude: -5.97583,
+      currentStatus: 'STOPPED_AT',
+      delayMinutes: 0,
+      delaySeconds: 0,
+      updatedAt: 1784188688,
+      platform: '1',
+      vehicleId: '23615',
+      vehicleLabel: 'C4-23615-PLATF.(1)',
+      rollingStock: null,
+      accessible: false,
+      metadata: {
+        provider: 'gtfs-rt',
+      },
+      raw: {
+        id: 'VP_C4-23615',
+        vehicle: {
+          trip: {
+            tripId: '3094J23615C4',
+          },
+          position: {
+            latitude: 37.362885,
+            longitude: -5.97583,
+          },
+          currentStatus: 'STOPPED_AT',
+          timestamp: '1784188688',
+          stopId: '51110',
+          vehicle: {
+            id: '23615',
+            label: 'C4-23615-PLATF.(1)',
+          },
+        },
+      },
+    },
+  ];
+
+  private readonly scheduleUpdates: ScheduleUpdate[] = [
+    {
+      id: 'TUUPDATE_3094J80903C3',
+      tripUpdate: {
+        trip: {
+          tripId: '3094J80903C3',
+          scheduleRelationship: 'SCHEDULED',
+        },
+        stopTimeUpdate: [
+          {
+            arrival: {
+              delay: 0,
+              time: '1784196600',
+            },
+            stopId: '40113',
+          },
+        ],
+        vehicle: {
+          wheelchairAccessible: 'WHEELCHAIR_INACCESSIBLE',
+        },
+        delay: 0,
+      },
+    },
   ];
 
   findAll(): Train[] {
     return this.trains;
+  }
+
+  findScheduleUpdates(): ScheduleUpdate[] {
+    return this.scheduleUpdates;
   }
 }
