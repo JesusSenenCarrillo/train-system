@@ -57,7 +57,13 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
 
   async syncNow(): Promise<IngestionSyncStatsDto> {
     if (this.running) {
-      throw new Error('GTFS synchronization already running');
+      return this.latestStats ?? {
+        pulledAt: new Date().toISOString(),
+        liveSnapshotsWritten: 0,
+        stopEventsWritten: 0,
+        aggregatesWritten: 0,
+        inferredRoutesWritten: 0,
+      };
     }
 
     this.running = true;
