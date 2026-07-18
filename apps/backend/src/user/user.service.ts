@@ -1,9 +1,9 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import {InjectRepository} from '@nestjs/typeorm';
 import {DeleteResult, Repository} from 'typeorm';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import {CreateUserDto} from './dto/create-user.dto';
+import {UpdateUserDto} from './dto/update-user.dto';
+import {User} from './entities/user.entity';
 
 @Injectable()
 export class UserService {
@@ -11,9 +11,8 @@ export class UserService {
    * Here, we have used data mapper approch for this tutorial that is why we
    * injecting repository here. Another approch can be Active records.
    */
-  constructor(
-      @InjectRepository(User) private readonly userRepository: Repository<User>,
-  ) {}
+  @InjectRepository(User)
+  private readonly userRepository!: Repository<User>;
 
   /**
    * this is function is used to create User in User Entity.

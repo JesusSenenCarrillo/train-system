@@ -1,10 +1,11 @@
-import {Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn,} from 'typeorm';
+import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn,} from 'typeorm';
 
-@Entity()
+@Entity({ name: 'train_live_state' })
 export class TrainEntity {
     @PrimaryGeneratedColumn()
     id!: number;
 
+    @Index({ unique: true })
     @Column({type: 'varchar', length: 60, unique: true})
     trainId!: string;
 
@@ -58,6 +59,9 @@ export class TrainEntity {
 
     @Column({type: 'bigint'})
     updatedAt!: number;
+
+    @Column({type: 'timestamp'})
+    lastSeenAt!: Date;
 
     @Column({type: 'varchar', length: 20, nullable: true})
     platform!: string | null;
