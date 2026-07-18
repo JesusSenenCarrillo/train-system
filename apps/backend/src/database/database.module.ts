@@ -17,7 +17,7 @@ import {InferredRouteEntity} from '../route/entities/inferred-route.entity';
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
             entities: [User, TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, IncidentArchiveEntity, InferredRouteEntity],
-            synchronize: process.env.NODE_ENV !== 'production', // auto-sync schema in dev
+            synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production',
             logging: true,
         }),
     ],
