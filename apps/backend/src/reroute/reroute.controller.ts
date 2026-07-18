@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { IncidentPayload, ReroutePlan } from '@train-system/shared-types';
-import { RerouteService } from './reroute.service';
+import {Body, Controller, Get, Inject, Param, Post} from '@nestjs/common';
+import {IncidentPayload, ReroutePlan} from '@train-system/shared-types';
+import {RerouteService} from './reroute.service';
 
 @Controller('reroute')
 export class RerouteController {
-  constructor(private readonly rerouteService: RerouteService) {}
+  @Inject(RerouteService)
+  private readonly rerouteService!: RerouteService;
 
   @Post()
   create(@Body() payload: IncidentPayload): ReroutePlan {

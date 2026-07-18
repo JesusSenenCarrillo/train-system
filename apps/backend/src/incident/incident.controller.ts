@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { IncidentService } from './incident.service';
-import { IncidentPayload } from '@train-system/shared-types';
+import {Body, Controller, Get, Inject, Param, Post} from '@nestjs/common';
+import {IncidentService} from './incident.service';
+import {IncidentPayload} from '@train-system/shared-types';
 
 @Controller('incidents')
 export class IncidentController {
-  constructor(private readonly incidentService: IncidentService) {}
+  @Inject(IncidentService)
+  private readonly incidentService!: IncidentService;
 
   @Post()
   create(@Body() payload: IncidentPayload) {

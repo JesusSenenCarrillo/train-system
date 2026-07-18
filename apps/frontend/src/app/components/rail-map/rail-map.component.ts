@@ -55,12 +55,13 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
       maxBoundsViscosity: 1,
       center: iberiaBounds.getCenter(),
       zoom: 6,
+      fullscreenControl: true,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       minZoom: 4,
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(this.map);
 
     this.markers = L.layerGroup().addTo(this.map);
@@ -80,7 +81,7 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
     stations.forEach((station) => {
       const marker = L.circleMarker([station.lat, station.lng], {
         title: station.name,
-        radius: 6,
+        radius: 3,
         color: '#870164',
         fillColor: 'white',
         fillOpacity: 1,
@@ -92,7 +93,7 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
 
     trains.forEach((train) => {
       const marker = L.circleMarker([train.latitude, train.longitude], {
-        radius: 6,
+        radius: 3,
         color: 'red',
         fillOpacity: 1,
       }).bindPopup(

@@ -1,134 +1,197 @@
 import {Injectable} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {LessThan, Repository} from 'typeorm';
 import {ScheduleUpdate, Train} from '@train-system/shared-types';
+import {TrainEntity} from './entities/train.entity';
+import {TrainStopEventEntity} from './entities/train-stop-event.entity';
+import {CreateStopEventDto} from './dto/create-stop-event.dto';
 
 @Injectable()
 export class TrainService {
-  private readonly trains: Train[] = [
-    {
-      id: 1,
-      trainId: 'LD-71800',
-      source: 'LD',
-      serviceType: 'LD',
-      tripId: null,
-      commercialCode: '71800',
-      productCode: 16,
-      originStationId: '05193',
-      destinationStationId: '21010',
-      previousStationId: '05127',
-      nextStationId: '05127',
-      nextStationArrivalAt: '2026-07-16T09:16',
-      currentStopId: null,
-      latitude: 43.587063,
-      longitude: -7.9344945,
-      currentStatus: 'EN_ROUTE',
-      delayMinutes: 6,
-      delaySeconds: 360,
-      updatedAt: 1784186863,
-      platform: '4',
-      vehicleId: null,
-      vehicleLabel: null,
-      rollingStock: '527019',
-      accessible: false,
-      metadata: {
-        provider: 'flotaLD',
-      },
-      raw: {
-        codComercial: '71800',
-        codEstAnt: '05127',
-        codEstSig: '05127',
-        horaLlegadaSigEst: '2026-07-16T09:16',
-        codProduct: 16,
-        codOrigen: '05193',
-        codDestino: '21010',
-        accesible: false,
-        ultRetraso: '6',
-        latitud: 43.587063,
-        longitud: -7.9344945,
-        time: 1784186863,
-        p: '4',
-        mat: '527019',
-      },
-    },
-    {
-      id: 2,
-      trainId: 'VP_C4-23615',
-      source: 'COMMUTER',
-      serviceType: 'COMMUTER',
-      tripId: '3094J23615C4',
-      commercialCode: null,
-      productCode: null,
-      originStationId: null,
-      destinationStationId: null,
-      previousStationId: null,
-      nextStationId: null,
-      nextStationArrivalAt: null,
-      currentStopId: '51110',
-      latitude: 37.362885,
-      longitude: -5.97583,
-      currentStatus: 'STOPPED_AT',
-      delayMinutes: 0,
-      delaySeconds: 0,
-      updatedAt: 1784188688,
-      platform: '1',
-      vehicleId: '23615',
-      vehicleLabel: 'C4-23615-PLATF.(1)',
-      rollingStock: null,
-      accessible: false,
-      metadata: {
-        provider: 'gtfs-rt',
-      },
-      raw: {
-        id: 'VP_C4-23615',
-        vehicle: {
-          trip: {
-            tripId: '3094J23615C4',
-          },
-          position: {
-            latitude: 37.362885,
-            longitude: -5.97583,
-          },
-          currentStatus: 'STOPPED_AT',
-          timestamp: '1784188688',
-          stopId: '51110',
-          vehicle: {
-            id: '23615',
-            label: 'C4-23615-PLATF.(1)',
-          },
-        },
-      },
-    },
-  ];
+  @InjectRepository(TrainEntity)
+  private readonly trainLiveRepository!: Repository<TrainEntity>;
 
-  private readonly scheduleUpdates: ScheduleUpdate[] = [
-    {
-      id: 'TUUPDATE_3094J80903C3',
-      tripUpdate: {
-        trip: {
-          tripId: '3094J80903C3',
-          scheduleRelationship: 'SCHEDULED',
-        },
-        stopTimeUpdate: [
-          {
-            arrival: {
-              delay: 0,
-              time: '1784196600',
-            },
-            stopId: '40113',
-          },
-        ],
-        vehicle: {
-          wheelchairAccessible: 'WHEELCHAIR_INACCESSIBLE',
-        },
-        delay: 0,
-      },
-    },
-  ];
+  @InjectRepository(TrainStopEventEntity)
+  private readonly stopEventRepository!: Repository<TrainStopEventEntity>;
 
-  findAll(): Train[] {
-    return this.trains;
+  async findAll(): Promise<Train[]> {
+    await this.purgeStaleLiveTrains();
+    const rows = await this.trainLiveRepository.find({
+      order: {
+        lastSeenAt: 'DESC',
+      },
+    });
+    return rows.map((row) => this.toTrainModel(row));
   }
 
-  findScheduleUpdates(): ScheduleUpdate[] {
-    return this.scheduleUpdates;
+  async upsertLiveState(payload: Train): Promise<Train> {
+    const now = new Date();
+    const liveRow = this.trainLiveRepository.create({
+      trainId: payload.trainId,
+      source: payload.source,
+      serviceType: payload.serviceType,
+      tripId: payload.tripId ?? null,
+      commercialCode: payload.commercialCode ?? null,
+      productCode: payload.productCode ?? null,
+      originStationId: payload.originStationId ?? null,
+      destinationStationId: payload.destinationStationId ?? null,
+      previousStationId: payload.previousStationId ?? null,
+      nextStationId: payload.nextStationId ?? null,
+      nextStationArrivalAt: payload.nextStationArrivalAt ? new Date(payload.nextStationArrivalAt) : null,
+      currentStopId: payload.currentStopId ?? null,
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      currentStatus: payload.currentStatus,
+      delayMinutes: payload.delayMinutes,
+      delaySeconds: payload.delaySeconds,
+      updatedAt: payload.updatedAt,
+      platform: payload.platform ?? null,
+      vehicleId: payload.vehicleId ?? null,
+      vehicleLabel: payload.vehicleLabel ?? null,
+      rollingStock: payload.rollingStock ?? null,
+      accessible: payload.accessible,
+      metadata: payload.metadata ?? null,
+      raw: payload.raw ?? null,
+      lastSeenAt: now,
+    });
+
+    const existing = await this.trainLiveRepository.findOneBy({ trainId: payload.trainId });
+    if (existing) {
+      const merged = this.trainLiveRepository.merge(existing, liveRow);
+      await this.trainLiveRepository.save(merged);
+    } else {
+      await this.trainLiveRepository.save(liveRow);
+    }
+    const saved = await this.trainLiveRepository.findOneByOrFail({ trainId: payload.trainId });
+    return this.toTrainModel(saved);
+  }
+
+  async purgeStaleLiveTrains(graceMinutes = 5): Promise<number> {
+    const cutoff = new Date(Date.now() - graceMinutes * 60 * 1000);
+    const result = await this.trainLiveRepository.delete({
+      lastSeenAt: LessThan(cutoff),
+    });
+    return result.affected ?? 0;
+  }
+
+  async createStopEvent(payload: CreateStopEventDto): Promise<TrainStopEventEntity | null> {
+    const occurredAt = new Date(payload.occurredAt);
+    const existing = await this.stopEventRepository.findOne({
+      where: {
+        trainId: payload.trainId,
+        stationId: payload.stationId,
+        eventType: payload.eventType,
+        occurredAt,
+      },
+    });
+    if (existing) {
+      return null;
+    }
+
+    const eventRow = this.stopEventRepository.create({
+      trainId: payload.trainId,
+      stationId: payload.stationId,
+      tripId: payload.tripId ?? null,
+      eventType: payload.eventType,
+      occurredAt,
+      delaySeconds: payload.delaySeconds ?? null,
+      source: payload.source ?? 'GTFS_RT',
+      metadata: payload.metadata ?? null,
+    });
+
+    return this.stopEventRepository.save(eventRow);
+  }
+
+  async findStopEvents(filters: { trainId?: string; stationId?: string; limit?: number }): Promise<TrainStopEventEntity[]> {
+    const where: { trainId?: string; stationId?: string } = {};
+    if (filters.trainId) {
+      where.trainId = filters.trainId;
+    }
+    if (filters.stationId) {
+      where.stationId = filters.stationId;
+    }
+
+    return this.stopEventRepository.find({
+      where,
+      order: { occurredAt: 'DESC' },
+      take: filters.limit ?? 200,
+    });
+  }
+
+  async findScheduleUpdates(): Promise<ScheduleUpdate[]> {
+    const events = await this.stopEventRepository.find({
+      order: { occurredAt: 'DESC' },
+      take: 100,
+    });
+
+    return events.map((event) => {
+      const unixTime = Math.floor(event.occurredAt.getTime() / 1000).toString();
+      const stopTimeUpdate =
+        event.eventType === 'DEPARTURE'
+          ? [{ departure: { delay: event.delaySeconds ?? 0, time: unixTime }, stopId: event.stationId }]
+          : [{ arrival: { delay: event.delaySeconds ?? 0, time: unixTime }, stopId: event.stationId }];
+
+      return {
+        id: `TU_${event.id}`,
+        tripUpdate: {
+          trip: {
+            tripId: event.tripId ?? event.trainId,
+            scheduleRelationship: 'SCHEDULED',
+          },
+          stopTimeUpdate,
+          delay: event.delaySeconds ?? 0,
+        },
+      };
+    });
+  }
+
+  async getLlmContext(limit = 300, trainId?: string): Promise<Array<Record<string, unknown>>> {
+    const rows = await this.stopEventRepository.find({
+      where: trainId ? { trainId } : {},
+      order: { occurredAt: 'DESC' },
+      take: limit,
+    });
+
+    return rows.map((row) => ({
+      trainId: row.trainId,
+      stationId: row.stationId,
+      eventType: row.eventType,
+      occurredAt: row.occurredAt.toISOString(),
+      delaySeconds: row.delaySeconds,
+      source: row.source,
+      metadata: row.metadata,
+    }));
+  }
+
+  private toTrainModel(row: TrainEntity): Train {
+    return {
+      id: row.id,
+      trainId: row.trainId,
+      source: row.source,
+      serviceType: row.serviceType,
+      tripId: row.tripId,
+      commercialCode: row.commercialCode,
+      productCode: row.productCode,
+      originStationId: row.originStationId,
+      destinationStationId: row.destinationStationId,
+      previousStationId: row.previousStationId,
+      nextStationId: row.nextStationId,
+      nextStationArrivalAt: row.nextStationArrivalAt ? row.nextStationArrivalAt.toISOString() : null,
+      currentStopId: row.currentStopId,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      currentStatus: row.currentStatus,
+      delayMinutes: row.delayMinutes,
+      delaySeconds: row.delaySeconds,
+      updatedAt: Number(row.updatedAt),
+      lastSeenAt: row.lastSeenAt.toISOString(),
+      platform: row.platform,
+      vehicleId: row.vehicleId,
+      vehicleLabel: row.vehicleLabel,
+      rollingStock: row.rollingStock,
+      accessible: row.accessible,
+      metadata: row.metadata,
+      raw: row.raw,
+    };
   }
 }

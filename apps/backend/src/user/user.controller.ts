@@ -1,15 +1,7 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {Body, Controller, Delete, Get, Inject, Param, Patch, Post,} from '@nestjs/common';
+import {UserService} from './user.service';
+import {CreateUserDto} from './dto/create-user.dto';
+import {UpdateUserDto} from './dto/update-user.dto';
 
 /**
  * whatever the string pass in controller decorator it will be appended to
@@ -19,7 +11,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
  */
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  @Inject(UserService)
+  private readonly userService!: UserService;
 
   /**
    * Post decorator represents method of request as we have used post decorator the method

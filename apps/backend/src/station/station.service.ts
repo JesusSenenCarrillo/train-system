@@ -1,32 +1,125 @@
-import { Injectable } from '@nestjs/common';
-import { Station } from '@train-system/shared-types';
+import {Injectable, OnModuleInit} from '@nestjs/common';
+import {Station} from '@train-system/shared-types';
+import {readFile} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
+import * as path from 'node:path';
+
+interface ParsedStationCsvRow {
+  code: string;
+  name: string;
+  lat: number;
+  lng: number;
+  city: string;
+}
 
 @Injectable()
-export class StationService {
-  private readonly stations: Station[] = [
-    { id: 1, name: 'Madrid Puerta de Atocha', lat: 40.4068, lng: -3.6892, code: 'MAD', city: 'Madrid' },
-    { id: 2, name: 'Barcelona Sants', lat: 41.3797, lng: 2.1392, code: 'BCN', city: 'Barcelona' },
-    { id: 3, name: 'Sevilla Santa Justa', lat: 37.3925, lng: -5.9761, code: 'SVQ', city: 'Sevilla' },
-    { id: 4, name: 'Valencia Joaquin Sorolla', lat: 39.4667, lng: -0.3774, code: 'VLC', city: 'Valencia' },
-    { id: 5, name: 'Zaragoza Delicias', lat: 41.6612, lng: -0.8992, code: 'ZAZ', city: 'Zaragoza' },
-    { id: 6, name: 'Málaga María Zambrano', lat: 36.7111, lng: -4.4322, code: 'AGP', city: 'Málaga' },
-    { id: 7, name: 'Alicante Terminal', lat: 38.3430, lng: -0.4815, code: 'ALC', city: 'Alicante' },
-    { id: 8, name: 'Bilbao Abando', lat: 43.2627, lng: -2.9253, code: 'BIO', city: 'Bilbao' },
-    { id: 9, name: 'Santander', lat: 43.4242, lng: -3.8219, code: 'SAN', city: 'Santander' },
-    { id: 10, name: 'Pamplona', lat: 42.8125, lng: -1.6458, code: 'PNA', city: 'Pamplona' },
-    { id: 11, name: 'Valladolid', lat: 41.6518, lng: -4.7286, code: 'VLL', city: 'Valladolid' },
-    { id: 12, name: 'Salamanca', lat: 40.9635, lng: -5.6697, code: 'SLM', city: 'Salamanca' },
-    { id: 13, name: 'Toledo', lat: 39.8576, lng: -4.0228, code: 'TOL', city: 'Toledo' },
-    { id: 14, name: 'Córdoba', lat: 37.8916, lng: -4.7641, code: 'COR', city: 'Córdoba' },
-    { id: 15, name: 'Albacete', lat: 38.9958, lng: -1.8560, code: 'ABC', city: 'Albacete' },
-    { id: 16, name: 'Murcia', lat: 37.9794, lng: -1.1307, code: 'MUR', city: 'Murcia' },
-    { id: 17, name: 'Lleida', lat: 41.6176, lng: 0.6200, code: 'ILD', city: 'Lleida' },
-    { id: 18, name: 'Girona', lat: 41.9794, lng: 2.8214, code: 'GIR', city: 'Girona' },
-    { id: 19, name: 'Tarragona', lat: 41.1187, lng: 1.2445, code: 'TAR', city: 'Tarragona' },
-    { id: 20, name: 'Huelva', lat: 37.2584, lng: -6.9563, code: 'HUV', city: 'Huelva' }
-  ];
+export class StationService implements OnModuleInit {
+  private stations: Station[] = [];
+  private stationByCode: Map<string, Station> = new Map();
+
+  async onModuleInit(): Promise<void> {
+    await this.loadStationsFromCsv();
+  }
 
   findAll(): Station[] {
     return this.stations;
+  }
+
+  findByCode(code: string): Station | undefined {
+    return this.stationByCode.get(code);
+  }
+
+  hasCode(code: string): boolean {
+    return this.stationByCode.has(code);
+  }
+
+  private async loadStationsFromCsv(): Promise<void> {
+    const stationsPath = this.resolveStationsFilePath();
+    const buffer = await readFile(stationsPath);
+    const raw = buffer.toString('latin1');
+    const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    if (lines.length < 2) {
+      this.stations = [];
+      this.stationByCode.clear();
+      return;
+    }
+
+    const rows = lines.slice(1).map((line) => this.parseStationRow(line)).filter((row) => row !== null);
+    this.stations = rows.map((row, index) => ({
+      id: index + 1,
+      name: row.name,
+      lat: row.lat,
+      lng: row.lng,
+      code: row.code,
+      city: row.city,
+    }));
+
+    this.stationByCode = new Map(this.stations.map((station) => [station.code, station]));
+  }
+
+  private resolveStationsFilePath(): string {
+    const candidates = [
+      path.resolve(process.cwd(), 'src', 'database', 'static_data', 'stations.csv'),
+      path.resolve(process.cwd(), 'apps', 'backend', 'src', 'database', 'static_data', 'stations.csv'),
+      path.resolve(__dirname, '..', 'database', 'static_data', 'stations.csv'),
+    ];
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return candidates[0];
+  }
+
+  private parseStationRow(line: string): ParsedStationCsvRow | null {
+    const columns = this.parseCsvLine(line, ';');
+    if (columns.length < 8) {
+      return null;
+    }
+
+    const code = columns[0]?.trim();
+    const name = columns[1]?.trim();
+    const lat = Number(columns[2]);
+    const lng = Number(columns[3]);
+    const city = columns[6]?.trim();
+
+    if (!code || !name || Number.isNaN(lat) || Number.isNaN(lng)) {
+      return null;
+    }
+
+    return {
+      code,
+      name,
+      lat,
+      lng,
+      city: city || '',
+    };
+  }
+
+  private parseCsvLine(line: string, separator: string): string[] {
+    const output: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i += 1) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char === separator && !inQuotes) {
+        output.push(current);
+        current = '';
+        continue;
+      }
+
+      current += char;
+    }
+
+    output.push(current);
+    return output;
   }
 }

@@ -1,6 +1,11 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import {Module} from '@nestjs/common';
+import {TypeOrmModule} from '@nestjs/typeorm';
 import {User} from "../user/entities/user.entity";
+import {TrainEntity} from '../train/entities/train.entity';
+import {TrainStopEventEntity} from '../train/entities/train-stop-event.entity';
+import {TrainDailyAggregateEntity} from '../train/entities/train-daily-aggregate.entity';
+import {IncidentArchiveEntity} from '../incident/entities/incident-archive.entity';
+import {InferredRouteEntity} from '../route/entities/inferred-route.entity';
 
 @Module({
     imports: [
@@ -11,7 +16,7 @@ import {User} from "../user/entities/user.entity";
             username: process.env.DB_USERNAME || 'postgres',
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
-            entities: [User],
+            entities: [User, TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, IncidentArchiveEntity, InferredRouteEntity],
             synchronize: process.env.NODE_ENV !== 'production', // auto-sync schema in dev
             logging: true,
         }),

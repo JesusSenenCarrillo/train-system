@@ -9,15 +9,21 @@ export interface Station {
 
 export interface Route {
   id: number;
-  originStationId: number;
-  destinationStationId: number;
+  originStationId: string;
+  destinationStationId: string;
   duration: number;
-  distance: number;
+  distance: number | null;
   trainType: string;
+  source?: 'INFERRED' | 'STATIC';
+  confidence?: number;
+  tripId?: string | null;
+  trainId?: string | null;
+  pathStationIds?: string[];
+  updatedAt?: string;
 }
 
 export interface Train {
-  id: number;
+  id?: number;
   trainId: string;
   source: 'LD' | 'COMMUTER';
   serviceType: 'LD' | 'COMMUTER';
@@ -36,6 +42,7 @@ export interface Train {
   delayMinutes: number;
   delaySeconds: number;
   updatedAt: number;
+  lastSeenAt?: string;
   platform?: string | null;
   vehicleId?: string | null;
   vehicleLabel?: string | null;
@@ -95,7 +102,7 @@ export interface ScheduleUpdate {
   tripUpdate: {
     trip: {
       tripId: string;
-      scheduleRelationship: string;
+      scheduleRelationship: 'SCHEDULED' | 'CANCELED' | 'UNSCHEDULED';
     };
     stopTimeUpdate: Array<{
       arrival?: {
@@ -107,6 +114,7 @@ export interface ScheduleUpdate {
         time?: string;
       };
       stopId: string;
+      scheduleRelationship?: 'SCHEDULED' | 'SKIPPED' | 'NO_DATA';
     }>;
     vehicle?: {
       wheelchairAccessible?: string;
