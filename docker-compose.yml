@@ -2,10 +2,11 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: barcelona1562
-      POSTGRES_DB: renfe
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - '5432:5432'
     volumes:
@@ -15,23 +16,31 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+    restart: unless-stopped
     ports:
       - '3000:3000'
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgres://postgres:barcelona1562@postgres:5432/renfe
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      NODE_ENV: ${NODE_ENV}
+      GTFS_SYNC_SECONDS: ${GTFS_SYNC_SECONDS}
 
   frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
+    restart: unless-stopped
     ports:
       - '4200:4200'
     depends_on:
       - backend
     environment:
-      API_PROXY_TARGET: http://backend:3000
+      API_PROXY_TARGET: ${API_PROXY_TARGET}
 
 volumes:
   pgdata:
