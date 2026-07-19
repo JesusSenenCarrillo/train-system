@@ -60,7 +60,7 @@ export class TrainEntity {
     @Column({type: 'bigint'})
     updatedAt!: number;
 
-    @Column({type: 'timestamptz'})
+    @Column({type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP'})
     lastSeenAt!: Date;
 
     @Column({type: 'varchar', length: 20, nullable: true})
