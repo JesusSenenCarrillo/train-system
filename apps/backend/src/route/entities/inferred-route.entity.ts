@@ -41,9 +41,9 @@ export class InferredRouteEntity {
   @Column({ type: 'double precision', default: 0.5 })
   confidence!: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 }
