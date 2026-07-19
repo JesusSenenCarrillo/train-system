@@ -27,9 +27,9 @@ export class TrainDailyAggregateEntity {
   @Column({ type: 'jsonb', nullable: true })
   metrics!: Record<string, unknown> | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 }

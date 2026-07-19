@@ -19,7 +19,7 @@ export class TrainStopEventEntity {
   @Column({ type: 'varchar', length: 20 })
   eventType!: 'ARRIVAL' | 'DEPARTURE' | 'PASSING';
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   occurredAt!: Date;
 
   @Column({ type: 'int', nullable: true })
@@ -31,6 +31,6 @@ export class TrainStopEventEntity {
   @Column({ type: 'jsonb', nullable: true })
   metadata!: Record<string, unknown> | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 }

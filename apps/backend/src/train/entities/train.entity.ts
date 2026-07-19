@@ -36,7 +36,7 @@ export class TrainEntity {
     @Column({type: 'varchar', length: 20, nullable: true})
     nextStationId!: string | null;
 
-    @Column({type: 'timestamp', nullable: true})
+    @Column({type: 'timestamptz', nullable: true})
     nextStationArrivalAt!: Date | null;
 
     @Column({type: 'varchar', length: 20, nullable: true})
@@ -60,7 +60,7 @@ export class TrainEntity {
     @Column({type: 'bigint'})
     updatedAt!: number;
 
-    @Column({type: 'timestamp'})
+    @Column({type: 'timestamptz'})
     lastSeenAt!: Date;
 
     @Column({type: 'varchar', length: 20, nullable: true})
@@ -84,9 +84,9 @@ export class TrainEntity {
     @Column({type: 'jsonb', nullable: true})
     raw!: Record<string, unknown> | null;
 
-    @CreateDateColumn()
+    @CreateDateColumn({type: 'timestamptz'})
     createdAt!: Date;
 
-    @UpdateDateColumn()
+    @UpdateDateColumn({type: 'timestamptz'})
     rowUpdatedAt!: Date;
 }

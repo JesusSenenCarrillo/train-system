@@ -31,10 +31,10 @@ export class IncidentArchiveEntity {
   @Column({ type: 'varchar', length: 8, nullable: true })
   language!: string | null;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   startedAt!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   endedAt!: Date | null;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
@@ -46,9 +46,9 @@ export class IncidentArchiveEntity {
   @Column({ type: 'jsonb', nullable: true })
   raw!: Record<string, unknown> | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   rowUpdatedAt!: Date;
 }
