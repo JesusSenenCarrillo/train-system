@@ -12,6 +12,7 @@ import {
 } from './dto/normalized-gtfs.dto';
 import {Train} from '@train-system/shared-types';
 import {CreateStopEventDto} from '../train/dto/create-stop-event.dto';
+import {toIso, toMadridLocalIso} from "../../../../libs/utils/src";
 
 @Injectable()
 export class GtfsNormalizerService {
@@ -73,9 +74,9 @@ export class GtfsNormalizerService {
           return {
             stopId: stop.stopId,
             scheduleRelationship: stop.scheduleRelationship ?? null,
-            arrivalTime: this.toIso(stop.arrival?.time),
+            arrivalTime: toIso(stop.arrival?.time),
             arrivalDelaySeconds: stop.arrival?.delay ?? null,
-            departureTime: this.toIso(stop.departure?.time),
+            departureTime: toIso(stop.departure?.time),
             departureDelaySeconds: stop.departure?.delay ?? null,
           };
         })
@@ -169,7 +170,9 @@ export class GtfsNormalizerService {
       destinationStationId: ldFleetTrain?.codDestino ?? lastStop?.stopId ?? null,
       previousStationId: ldFleetTrain?.codEstAnt ?? null,
       nextStationId: ldFleetTrain?.codEstSig ?? firstStop?.stopId ?? null,
-      nextStationArrivalAt: ldFleetTrain?.horaLlegadaSigEst ? new Date(ldFleetTrain.horaLlegadaSigEst).toISOString() : null,
+      nextStationArrivalAt: ldFleetTrain?.horaLlegadaSigEst
+        ? toMadridLocalIso(ldFleetTrain.horaLlegadaSigEst)
+        : null,
       currentStopId: live.stopId,
       latitude: live.latitude,
       longitude: live.longitude,
@@ -262,18 +265,5 @@ export class GtfsNormalizerService {
     }
     const match = value.match(/^(\d{4,6})/);
     return match ? match[1] : null;
-  }
-
-  private toIso(value?: string): string | null {
-    if (!value) {
-      return null;
-    }
-    const parsed = Number(value);
-    if (!Number.isNaN(parsed)) {
-      return new Date(parsed * 1000).toISOString();
-    }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 }
