@@ -7,11 +7,10 @@ import {TrainModule} from './train/train.module';
 import {IncidentModule} from './incident/incident.module';
 import {RerouteModule} from './reroute/reroute.module';
 import {RouteModule} from './route/route.module';
-import {UserModule} from './user/user.module';
 import {GtfsModule} from './gtfs/gtfs.module';
 
 @Module({
-    imports: [DatabaseModule, StationModule, TrainModule, IncidentModule, RerouteModule, RouteModule, UserModule, GtfsModule],
+    imports: [DatabaseModule, StationModule, TrainModule, IncidentModule, RerouteModule, RouteModule, GtfsModule],
     controllers: [AppController],
     providers: [AppService],
 })
