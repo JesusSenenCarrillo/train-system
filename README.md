@@ -14,10 +14,14 @@ npm run start:backend
 npm run start:frontend
 ```
 
+For local backend runs, create or edit `.env.local` in the repo root with `DB_HOST=localhost`.
+
 ## Docker Compose
 ```bash
 docker compose up --build
 ```
+
+Docker Compose keeps using the existing `.env` values, so it can still point the backend at the containerized `postgres` service.
 
 ## Endpoints principales
 - GET /api/routes
