@@ -19,7 +19,7 @@ export class TrainStopEventEntity {
   @Column({ type: 'varchar', length: 20 })
   eventType!: 'ARRIVAL' | 'DEPARTURE' | 'PASSING';
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   occurredAt!: Date;
 
   @Column({ type: 'int', nullable: true })
