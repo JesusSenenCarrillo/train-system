@@ -3,6 +3,7 @@ import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn} from 't
 @Entity({ name: 'train_stop_events' })
 @Index(['trainId', 'occurredAt'])
 @Index(['stationId', 'occurredAt'])
+@Index(['occurredAt'])
 export class TrainStopEventEntity {
   @PrimaryGeneratedColumn()
   id!: number;
