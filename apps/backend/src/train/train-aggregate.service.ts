@@ -1,6 +1,6 @@
-import {Injectable, OnModuleDestroy, OnModuleInit} from '@nestjs/common';
+import {Injectable, Logger, OnModuleDestroy, OnModuleInit} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
-import {In, Repository} from 'typeorm';
+import {In, LessThan, Repository} from 'typeorm';
 import {TrainDailyAggregateEntity} from './entities/train-daily-aggregate.entity';
 import {TrainStopEventEntity} from './entities/train-stop-event.entity';
 
@@ -16,6 +16,8 @@ interface AggregateBucket {
 
 @Injectable()
 export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(TrainAggregateService.name);
+
   @InjectRepository(TrainDailyAggregateEntity)
   private readonly aggregateRepository!: Repository<TrainDailyAggregateEntity>;
 
@@ -41,10 +43,6 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
       return 0;
     }
 
-    await this.aggregateRepository.delete({
-      serviceDate: In(dates),
-    });
-
     const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
     const endDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -67,11 +65,27 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
       }),
     );
 
-    if (aggregates.length > 0) {
-      await this.aggregateRepository.save(aggregates);
+    if (aggregates.length === 0) {
+      this.logger.warn(`refreshRecentAggregates: no events found for dates [${dates.join(', ')}], skipping delete to preserve existing rows`);
+      return 0;
     }
 
+    await this.aggregateRepository.delete({ serviceDate: In(dates) });
+    await this.aggregateRepository.save(aggregates);
+
     return aggregates.length;
+  }
+
+  async purgeOldStopEvents(keepDays = 3): Promise<number> {
+    const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000);
+    const result = await this.stopEventRepository.delete({
+      occurredAt: LessThan(cutoff),
+    });
+    const affected = result.affected ?? 0;
+    if (affected > 0) {
+      this.logger.log(`Purged ${affected} stop events older than ${keepDays} days`);
+    }
+    return affected;
   }
 
   private scheduleNextRun(): void {
@@ -86,6 +100,7 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     this.timer = setTimeout(async () => {
       try {
         await this.refreshRecentAggregates(2);
+        await this.purgeOldStopEvents(3);
       } finally {
         this.scheduleNextRun();
       }
