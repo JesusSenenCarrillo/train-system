@@ -83,3 +83,28 @@ export interface LdFleetFeedDto {
   fechaActualizacion?: string;
   trenes?: LdFleetTrainDto[];
 }
+
+export interface LdTrainStopDto {
+  /** Station code */
+  p: string;
+  /** Scheduled time in HH:MM format */
+  h: string;
+}
+
+export interface LdTrainPathPointDto {
+  lat: number;
+  lon: number;
+  /** Station or waypoint code */
+  c: string;
+}
+
+export interface LdTrainWithStationsDto {
+  idTren: string;
+  estaciones?: LdTrainStopDto[];
+  secuencia?: LdTrainPathPointDto[];
+}
+
+export interface LdFleetWithStationsFeedDto {
+  fechaActualizacion?: string;
+  trenes?: LdTrainWithStationsDto[];
+}

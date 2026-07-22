@@ -1,5 +1,10 @@
 import {Injectable, Logger} from '@nestjs/common';
-import {GtfsTripUpdatesFeedDto, GtfsVehiclePositionsFeedDto, LdFleetFeedDto,} from './dto/gtfs-feed.dto';
+import {
+  GtfsTripUpdatesFeedDto,
+  GtfsVehiclePositionsFeedDto,
+  LdFleetFeedDto,
+  LdFleetWithStationsFeedDto,
+} from './dto/gtfs-feed.dto';
 
 const GTFS_ENDPOINTS = {
   tripUpdatesLd: 'https://gtfsrt.renfe.com/trip_updates_LD.json',
@@ -7,6 +12,7 @@ const GTFS_ENDPOINTS = {
   vehiclePositionsLd: 'https://gtfsrt.renfe.com/vehicle_positions_LD.json',
   vehiclePositionsCommuter: 'https://gtfsrt.renfe.com/vehicle_positions.json',
   ldFleetBase: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/flotaLD.json',
+  ldFleetWithStationsBase: 'https://tiempo-real.largorecorrido.renfe.com/renfe-visor/trenesConEstacionesLD.json',
 };
 
 @Injectable()
@@ -19,9 +25,11 @@ export class GtfsClientService {
     vehiclePositionsLd: GtfsVehiclePositionsFeedDto;
     vehiclePositionsCommuter: GtfsVehiclePositionsFeedDto;
     ldFleet: LdFleetFeedDto;
+    ldFleetWithStations: LdFleetWithStationsFeedDto;
   }> {
     const timestamp = Date.now();
     const ldFleetUrl = `${GTFS_ENDPOINTS.ldFleetBase}?v=${timestamp}`;
+    const ldFleetWithStationsUrl = `${GTFS_ENDPOINTS.ldFleetWithStationsBase}?v=${timestamp}`;
 
     const [
       tripUpdatesLd,
@@ -29,12 +37,14 @@ export class GtfsClientService {
       vehiclePositionsLd,
       vehiclePositionsCommuter,
       ldFleet,
+      ldFleetWithStations,
     ] = await Promise.all([
       this.fetchJsonOrDefault<GtfsTripUpdatesFeedDto>(GTFS_ENDPOINTS.tripUpdatesLd, { entity: [], header: { gtfsRealtimeVersion: '2.0' } }),
       this.fetchJsonOrDefault<GtfsTripUpdatesFeedDto>(GTFS_ENDPOINTS.tripUpdatesCommuter, { entity: [], header: { gtfsRealtimeVersion: '2.0' } }),
       this.fetchJsonOrDefault<GtfsVehiclePositionsFeedDto>(GTFS_ENDPOINTS.vehiclePositionsLd, { entity: [], header: { gtfsRealtimeVersion: '2.0' } }),
       this.fetchJsonOrDefault<GtfsVehiclePositionsFeedDto>(GTFS_ENDPOINTS.vehiclePositionsCommuter, { entity: [], header: { gtfsRealtimeVersion: '2.0' } }),
       this.fetchJsonOrDefault<LdFleetFeedDto>(ldFleetUrl, { trenes: [] }),
+      this.fetchJsonOrDefault<LdFleetWithStationsFeedDto>(ldFleetWithStationsUrl, { trenes: [] }),
     ]);
 
     return {
@@ -43,6 +53,7 @@ export class GtfsClientService {
       vehiclePositionsLd,
       vehiclePositionsCommuter,
       ldFleet,
+      ldFleetWithStations,
     };
   }
 
