@@ -1,7 +1,15 @@
 import {computed, inject, Injectable, signal} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {forkJoin} from 'rxjs';
-import {Incident, IncidentPayload, ReroutePlan, ScheduleUpdate, Station, Train,} from '@train-system/shared-types';
+import {
+  Incident,
+  IncidentPayload,
+  ReroutePlan,
+  Route,
+  ScheduleUpdate,
+  Station,
+  Train,
+} from '@train-system/shared-types';
 
 @Injectable({ providedIn: 'root' })
 export class RailDataStore {
@@ -9,6 +17,7 @@ export class RailDataStore {
 
   private readonly stationsState = signal<Station[]>([]);
   private readonly trainsState = signal<Train[]>([]);
+  private readonly routesState = signal<Route[]>([]);
   private readonly incidentsState = signal<Incident[]>([]);
   private readonly scheduleUpdatesState = signal<ScheduleUpdate[]>([]);
   private readonly reroutePlanState = signal<ReroutePlan | null>(null);
@@ -22,6 +31,7 @@ export class RailDataStore {
 
   readonly stations = computed(() => this.stationsState());
   readonly trains = computed(() => this.trainsState());
+  readonly routes = computed(() => this.routesState());
   readonly incidents = computed(() => this.incidentsState());
   readonly scheduleUpdates = computed(() => this.scheduleUpdatesState());
   readonly reroutePlan = computed(() => this.reroutePlanState());
@@ -56,12 +66,14 @@ export class RailDataStore {
     forkJoin({
       stations: this.http.get<Station[]>('/api/stations'),
       trains: this.http.get<Train[]>('/api/trains'),
+      routes: this.http.get<Route[]>('/api/routes'),
       incidents: this.http.get<Incident[]>('/api/incidents'),
       scheduleUpdates: this.http.get<ScheduleUpdate[]>('/api/trains/schedules'),
     }).subscribe({
-      next: ({ stations, trains, incidents, scheduleUpdates }) => {
+      next: ({ stations, trains, routes, incidents, scheduleUpdates }) => {
         this.stationsState.set(stations);
         this.trainsState.set(trains);
+        this.routesState.set(routes);
         this.incidentsState.set(incidents);
         this.scheduleUpdatesState.set(scheduleUpdates);
         this.lastSyncAtState.set(new Date().toISOString());

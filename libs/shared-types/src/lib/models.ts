@@ -18,7 +18,7 @@ export interface Route {
   confidence?: number;
   tripId?: string | null;
   trainId?: string | null;
-  pathStationIds?: string[];
+  pathStationIds: string[];
   updatedAt?: string;
 }
 
