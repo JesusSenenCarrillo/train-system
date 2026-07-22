@@ -12,7 +12,7 @@ import {
 } from './dto/normalized-gtfs.dto';
 import {Train} from '@train-system/shared-types';
 import {CreateStopEventDto} from '../train/dto/create-stop-event.dto';
-import {toIso, toMadridLocalIso} from "../../../../libs/utils/src";
+import {toIso, toMadridLocalIso, trimStationId} from "../../../../libs/utils/src";
 
 @Injectable()
 export class GtfsNormalizerService {
@@ -166,10 +166,10 @@ export class GtfsNormalizerService {
       tripId: live.tripId,
       commercialCode: ldFleetTrain?.codComercial ?? null,
       productCode: ldFleetTrain?.codProduct ?? null,
-      originStationId: ldFleetTrain?.codOrigen ?? firstStop?.stopId ?? null,
-      destinationStationId: ldFleetTrain?.codDestino ?? lastStop?.stopId ?? null,
-      previousStationId: ldFleetTrain?.codEstAnt ?? null,
-      nextStationId: ldFleetTrain?.codEstSig ?? firstStop?.stopId ?? null,
+      originStationId: trimStationId(ldFleetTrain?.codOrigen ?? firstStop?.stopId ?? null),
+      destinationStationId: trimStationId(ldFleetTrain?.codDestino ?? lastStop?.stopId ?? null),
+      previousStationId: trimStationId(ldFleetTrain?.codEstAnt ?? null),
+      nextStationId: trimStationId(ldFleetTrain?.codEstSig ?? firstStop?.stopId ?? null),
       nextStationArrivalAt: ldFleetTrain?.horaLlegadaSigEst
         ? toMadridLocalIso(ldFleetTrain.horaLlegadaSigEst)
         : null,
@@ -213,7 +213,7 @@ export class GtfsNormalizerService {
         if (stopUpdate.arrivalTime) {
           output.push({
             trainId,
-            stationId: stopUpdate.stopId,
+            stationId: trimStationId(stopUpdate.stopId)!,
             tripId: update.tripId,
             eventType: 'ARRIVAL',
             occurredAt: stopUpdate.arrivalTime,
@@ -230,7 +230,7 @@ export class GtfsNormalizerService {
         if (stopUpdate.departureTime) {
           output.push({
             trainId,
-            stationId: stopUpdate.stopId,
+            stationId: trimStationId(stopUpdate.stopId)!,
             tripId: update.tripId,
             eventType: 'DEPARTURE',
             occurredAt: stopUpdate.departureTime,
