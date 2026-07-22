@@ -1,5 +1,5 @@
 import {Inject, Injectable} from '@nestjs/common';
-import {UpsertInferredRouteDto} from '../route/route.service';
+import {UpsertRouteDto} from '../route/route.service';
 import {NormalizedTripUpdateDto} from './dto/normalized-gtfs.dto';
 import {Train} from '@train-system/shared-types';
 import {StationService} from '../station/station.service';
@@ -9,10 +9,20 @@ export class RouteInferenceService {
   @Inject(StationService)
   private readonly stationService!: StationService;
 
-  inferRoutes(payload: { tripUpdates: NormalizedTripUpdateDto[]; liveSnapshots: Train[] }): UpsertInferredRouteDto[] {
-    const output: UpsertInferredRouteDto[] = [];
+  /**
+   * Builds a list of inferred routes from GTFS trip updates and live train snapshots.
+   *
+   * For each trip update, it deduplicates the stop sequence into a station path and
+   * skips trips with fewer than two distinct stops. The first and last stops become
+   * the origin and destination. A confidence score (0–1) is derived from the ratio
+   * of stops that are recognized in the station registry. If a live snapshot exists
+   * for the trip, its trainId is linked to the inferred route.
+   */
+  inferRoutes(payload: { tripUpdates: NormalizedTripUpdateDto[]; liveSnapshots: Train[] }): UpsertRouteDto[] {
+    const output: UpsertRouteDto[] = [];
     const liveByTripId = new Map<string, Train>();
 
+    // Index live snapshots by tripId for O(1) lookup below
     for (const snapshot of payload.liveSnapshots) {
       if (snapshot.tripId) {
         liveByTripId.set(snapshot.tripId, snapshot);
@@ -48,6 +58,10 @@ export class RouteInferenceService {
     return output;
   }
 
+  /**
+   * Filters a raw stop-ID list down to an ordered sequence of unique, non-empty IDs,
+   * preserving the first occurrence of each and dropping duplicates and blanks.
+   */
   private uniqueStopIds(stopIds: string[]): string[] {
     const seen = new Set<string>();
     const output: string[] = [];
@@ -61,6 +75,11 @@ export class RouteInferenceService {
     return output;
   }
 
+  /**
+   * Estimates total trip duration in whole minutes by finding the earliest and latest
+   * timestamps across all arrival and departure times in the trip update.
+   * Returns 0 if fewer than two valid timestamps are available.
+   */
   private estimateDurationMinutes(tripUpdate: NormalizedTripUpdateDto): number {
     const times = tripUpdate.stopTimeUpdates
       .flatMap((stop) => [stop.arrivalTime, stop.departureTime])

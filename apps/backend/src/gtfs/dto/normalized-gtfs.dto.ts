@@ -43,5 +43,5 @@ export interface IngestionSyncStatsDto {
   liveSnapshotsWritten: number;
   stopEventsWritten: number;
   aggregatesWritten: number;
-  inferredRoutesWritten: number;
+  routesWritten: number;
 }

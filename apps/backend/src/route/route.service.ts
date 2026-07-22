@@ -4,7 +4,7 @@ import {Route} from '@train-system/shared-types';
 import {Repository} from 'typeorm';
 import {InferredRouteEntity} from './entities/inferred-route.entity';
 
-export interface UpsertInferredRouteDto {
+export interface UpsertRouteDto {
   routeKey: string;
   trainId?: string | null;
   tripId?: string | null;
@@ -15,6 +15,7 @@ export interface UpsertInferredRouteDto {
   distanceKm: number | null;
   trainType: string;
   confidence: number;
+  source?: 'INFERRED' | 'STATIC';
 }
 
 @Injectable()
@@ -44,7 +45,7 @@ export class RouteService {
     }));
   }
 
-  async upsertInferredRoutes(routes: UpsertInferredRouteDto[]): Promise<number> {
+  async upsertRoutes(routes: UpsertRouteDto[]): Promise<number> {
     let upsertedCount = 0;
 
     for (const route of routes) {
@@ -60,7 +61,7 @@ export class RouteService {
           distanceKm: route.distanceKm,
           trainType: route.trainType,
           confidence: route.confidence,
-          source: 'INFERRED',
+          source: route.source ?? 'INFERRED',
         });
         await this.inferredRouteRepository.save(merged);
         upsertedCount += 1;
@@ -78,7 +79,7 @@ export class RouteService {
         distanceKm: route.distanceKm,
         trainType: route.trainType,
         confidence: route.confidence,
-        source: 'INFERRED',
+        source: route.source ?? 'INFERRED',
       });
 
       await this.inferredRouteRepository.save(newRoute);

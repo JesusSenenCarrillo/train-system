@@ -1,6 +1,6 @@
 import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
 
-@Entity({ name: 'inferred_routes' })
+@Entity({ name: 'routes' })
 @Index(['routeKey'], { unique: true })
 @Index(['tripId'])
 @Index(['trainId'])
