@@ -14,7 +14,7 @@ npm run start:backend
 npm run start:frontend
 ```
 
-For local backend runs, create or edit `.env.local` in the repo root with `DB_HOST=localhost`.
+For local backend runs, create or edit `.env.local` in the repo root with `DB_HOST=localhost`. The backend now resolves env files from the workspace root, so the same settings are used whether it is started from Nx, Docker, or a direct Node run.
 
 ## Docker Compose
 ```bash
