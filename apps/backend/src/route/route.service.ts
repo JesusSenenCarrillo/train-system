@@ -1,7 +1,7 @@
 import {Injectable} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Route} from '@train-system/shared-types';
-import {Repository} from 'typeorm';
+import {LessThan, Repository} from 'typeorm';
 import {RouteEntity} from './entities/route.entity';
 
 export interface UpsertRouteDto {
@@ -12,7 +12,6 @@ export interface UpsertRouteDto {
   destinationStationId: string;
   pathStationIds: string[];
   durationMinutes: number;
-  distanceKm: number | null;
   trainType: string;
   confidence: number;
   source?: 'INFERRED' | 'STATIC';
@@ -24,6 +23,7 @@ export class RouteService {
   private readonly repository!: Repository<RouteEntity>;
 
   async findAll(): Promise<Route[]> {
+    await this.purgeStaleRoutes();
     const rows = await this.repository.find({
       order: { updatedAt: 'DESC' },
       take: 1000,
@@ -34,7 +34,6 @@ export class RouteService {
       originStationId: row.originStationId,
       destinationStationId: row.destinationStationId,
       duration: row.durationMinutes,
-      distance: row.distanceKm,
       trainType: row.trainType,
       source: row.source,
       confidence: row.confidence,
@@ -58,7 +57,6 @@ export class RouteService {
           destinationStationId: route.destinationStationId,
           pathStationIds: route.pathStationIds,
           durationMinutes: route.durationMinutes,
-          distanceKm: route.distanceKm,
           trainType: route.trainType,
           confidence: route.confidence,
           source: route.source ?? 'INFERRED',
@@ -76,7 +74,6 @@ export class RouteService {
         destinationStationId: route.destinationStationId,
         pathStationIds: route.pathStationIds,
         durationMinutes: route.durationMinutes,
-        distanceKm: route.distanceKm,
         trainType: route.trainType,
         confidence: route.confidence,
         source: route.source ?? 'INFERRED',
@@ -86,6 +83,15 @@ export class RouteService {
       upsertedCount += 1;
     }
 
+    await this.purgeStaleRoutes();
     return upsertedCount;
+  }
+
+  private async purgeStaleRoutes(graceMinutes = 5): Promise<number> {
+    const cutoff = new Date(Date.now() - graceMinutes * 60 * 1000);
+    const result = await this.repository.delete({
+      updatedAt: LessThan(cutoff),
+    });
+    return result.affected ?? 0;
   }
 }
