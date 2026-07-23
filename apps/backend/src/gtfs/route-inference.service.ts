@@ -49,7 +49,6 @@ export class RouteInferenceService {
         destinationStationId: destination,
         pathStationIds: stationPath,
         durationMinutes: this.estimateDurationMinutes(tripUpdate),
-        distanceKm: null,
         trainType: tripUpdate.source,
         confidence,
       });

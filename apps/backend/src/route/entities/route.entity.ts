@@ -4,6 +4,7 @@ import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateD
 @Index(['routeKey'], { unique: true })
 @Index(['tripId'])
 @Index(['trainId'])
+@Index(['updatedAt'])
 export class RouteEntity {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -28,9 +29,6 @@ export class RouteEntity {
 
   @Column({ type: 'int', default: 0 })
   durationMinutes!: number;
-
-  @Column({ type: 'double precision', nullable: true })
-  distanceKm!: number | null;
 
   @Column({ type: 'varchar', length: 30, default: 'UNKNOWN' })
   trainType!: string;

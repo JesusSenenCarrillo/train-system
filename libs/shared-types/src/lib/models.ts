@@ -12,7 +12,6 @@ export interface Route {
   originStationId: string;
   destinationStationId: string;
   duration: number;
-  distance: number | null;
   trainType: string;
   source?: 'INFERRED' | 'STATIC';
   confidence?: number;
