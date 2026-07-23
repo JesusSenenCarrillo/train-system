@@ -2,7 +2,7 @@ import {Injectable} from '@nestjs/common';
 import {InjectRepository} from '@nestjs/typeorm';
 import {Route} from '@train-system/shared-types';
 import {Repository} from 'typeorm';
-import {InferredRouteEntity} from './entities/inferred-route.entity';
+import {RouteEntity} from './entities/route.entity';
 
 export interface UpsertRouteDto {
   routeKey: string;
@@ -20,11 +20,11 @@ export interface UpsertRouteDto {
 
 @Injectable()
 export class RouteService {
-  @InjectRepository(InferredRouteEntity)
-  private readonly inferredRouteRepository!: Repository<InferredRouteEntity>;
+  @InjectRepository(RouteEntity)
+  private readonly repository!: Repository<RouteEntity>;
 
   async findAll(): Promise<Route[]> {
-    const rows = await this.inferredRouteRepository.find({
+    const rows = await this.repository.find({
       order: { updatedAt: 'DESC' },
       take: 1000,
     });
@@ -49,9 +49,9 @@ export class RouteService {
     let upsertedCount = 0;
 
     for (const route of routes) {
-      const existing = await this.inferredRouteRepository.findOneBy({ routeKey: route.routeKey });
+      const existing = await this.repository.findOneBy({ routeKey: route.routeKey });
       if (existing) {
-        const merged = this.inferredRouteRepository.merge(existing, {
+        const merged = this.repository.merge(existing, {
           trainId: route.trainId ?? null,
           tripId: route.tripId ?? null,
           originStationId: route.originStationId,
@@ -63,12 +63,12 @@ export class RouteService {
           confidence: route.confidence,
           source: route.source ?? 'INFERRED',
         });
-        await this.inferredRouteRepository.save(merged);
+        await this.repository.save(merged);
         upsertedCount += 1;
         continue;
       }
 
-      const newRoute = this.inferredRouteRepository.create({
+      const newRoute = this.repository.create({
         routeKey: route.routeKey,
         trainId: route.trainId ?? null,
         tripId: route.tripId ?? null,
@@ -82,7 +82,7 @@ export class RouteService {
         source: route.source ?? 'INFERRED',
       });
 
-      await this.inferredRouteRepository.save(newRoute);
+      await this.repository.save(newRoute);
       upsertedCount += 1;
     }
 
