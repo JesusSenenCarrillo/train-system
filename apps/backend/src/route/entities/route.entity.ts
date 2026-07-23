@@ -4,7 +4,7 @@ import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateD
 @Index(['routeKey'], { unique: true })
 @Index(['tripId'])
 @Index(['trainId'])
-export class InferredRouteEntity {
+export class RouteEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 

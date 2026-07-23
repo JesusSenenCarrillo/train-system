@@ -4,7 +4,7 @@ import {TrainEntity} from '../train/entities/train.entity';
 import {TrainStopEventEntity} from '../train/entities/train-stop-event.entity';
 import {TrainDailyAggregateEntity} from '../train/entities/train-daily-aggregate.entity';
 import {IncidentArchiveEntity} from '../incident/entities/incident-archive.entity';
-import {InferredRouteEntity} from '../route/entities/inferred-route.entity';
+import {RouteEntity} from '../route/entities/route.entity';
 
 @Module({
     imports: [
@@ -15,7 +15,7 @@ import {InferredRouteEntity} from '../route/entities/inferred-route.entity';
             username: process.env.DB_USERNAME || 'postgres',
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
-            entities: [TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, IncidentArchiveEntity, InferredRouteEntity],
+            entities: [TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, IncidentArchiveEntity, RouteEntity],
             synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production',
             logging: false,
         }),
