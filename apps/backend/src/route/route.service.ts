@@ -26,7 +26,7 @@ export class RouteService {
   async findAll(): Promise<Route[]> {
     const rows = await this.inferredRouteRepository.find({
       order: { updatedAt: 'DESC' },
-      take: 1000,
+      take: 2000,
     });
 
     return rows.map((row) => ({
