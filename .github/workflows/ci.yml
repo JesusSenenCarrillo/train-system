@@ -1,17 +1,26 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v5
+
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx nx run-many -t lint
+
+      - run: npx nx run-many -t test
+
       - run: npx nx run-many -t build
