@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import * as L from 'leaflet';
 import {RailDataStore} from '../../core/store/rail-data.store';
+import {getStationNameById} from "@train-system/utils";
 
 @Component({
     selector: 'app-rail-map',
@@ -35,6 +36,9 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
     private paths: any = null;
     private renderEffect: EffectRef | null = null;
 
+    /**
+     * Initializes the Leaflet map and sets up a reactive effect to re-render markers and routes.
+     */
     ngAfterViewInit(): void {
         this.initializeMap();
         this.renderEffect = effect(() => {
@@ -43,6 +47,7 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
         }, {injector: this.injector});
     }
 
+    /** Cleans up the reactive effect and Leaflet layers when the component is destroyed. */
     ngOnDestroy(): void {
         this.renderEffect?.destroy();
         this.markers?.remove();
@@ -50,6 +55,9 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
         this.map?.remove();
     }
 
+    /**
+     * Creates the Leaflet map centered on the Iberian peninsula with OpenStreetMap tiles.
+     */
     private initializeMap(): void {
         const iberiaBounds = L.latLngBounds(L.latLng(27.5, -18), L.latLng(52.5, 8));
 
@@ -71,6 +79,9 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
         this.paths = L.layerGroup().addTo(this.map);
     }
 
+    /**
+     * Renders station and train markers on the map and fits the view to their bounds.
+     */
     private renderMarkers(): void {
         if (!this.map || !this.markers) {
             return;
@@ -101,7 +112,7 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
                 color: 'red',
                 fillOpacity: 1,
             }).bindPopup(
-                `<strong>${train.trainId}</strong><br>${train.serviceType} · ${train.currentStatus}<br>Retraso: ${train.delayMinutes} min`
+                `<strong>${train.trainId}</strong><br>${this.transformStatus(train.currentStatus, train.nextStationId)}<br>Retraso: ${train.delayMinutes} min`
             );
 
             marker.addTo(this.markers!);
@@ -113,6 +124,34 @@ export class RailMapComponent implements AfterViewInit, OnDestroy {
         }
     }
 
+    /**
+     * Translates a train status enum into a human-readable Spanish label.
+     *
+     * @param status - The train status.
+     * @param stationId - Optional next station id to append to the label.
+     * @returns The translated status string.
+     */
+    private transformStatus(status: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO', stationId?: string | null): string {
+        let transformedStatus;
+        switch (status) {
+            case 'INCOMING_AT':
+                transformedStatus = 'Llegando a ';
+                break;
+            case 'STOPPED_AT':
+                transformedStatus = 'Detenido en ';
+                break;
+            case 'IN_TRANSIT_TO':
+                transformedStatus = 'En tránsito a ';
+                break;
+            default:
+                transformedStatus = 'Desconocido';
+        }
+        return transformedStatus + getStationNameById(stationId);
+    }
+
+    /**
+     * Renders route polylines by resolving each path station to its coordinates.
+     */
     private renderRoutes(): void {
         const routes = this.store.routes();
         if (routes.length > 0) {

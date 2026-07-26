@@ -1,11 +1,14 @@
 import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn} from 'typeorm';
+import {IncidentSeverity, IncidentType} from '@train-system/shared-types';
 
 @Entity({ name: 'incident_archive' })
 @Index(['externalId'])
 @Index(['startedAt'])
+@Index(['incidentType'])
+@Index(['severity'])
+@Index(['status', 'startedAt'])
 export class IncidentArchiveEntity {
-  @PrimaryGeneratedColumn()
-  id!: number;
+  @PrimaryGeneratedColumn() id!: number;
 
   @Column({ type: 'varchar', length: 120, nullable: true })
   externalId!: string | null;
@@ -22,8 +25,17 @@ export class IncidentArchiveEntity {
   @Column({ type: 'text', array: true, default: '{}' })
   routeIds!: string[];
 
-  @Column({ type: 'varchar', length: 60 })
-  type!: string;
+  @Column({ type: 'enum', enum: IncidentType, nullable: true })
+  incidentType!: IncidentType | null;
+
+  @Column({ type: 'enum', enum: IncidentSeverity, nullable: true })
+  severity!: IncidentSeverity | null;
+
+  @Column({ type: 'int', nullable: true })
+  estimatedDelayMinutes!: number | null;
+
+  @Column({ type: 'text', array: true, nullable: true, default: '{}' })
+  affectedStopIds!: string[] | null;
 
   @Column({ type: 'text' })
   description!: string;

@@ -3,6 +3,8 @@ import {TypeOrmModule} from '@nestjs/typeorm';
 import {TrainEntity} from '../train/entities/train.entity';
 import {TrainStopEventEntity} from '../train/entities/train-stop-event.entity';
 import {TrainDailyAggregateEntity} from '../train/entities/train-daily-aggregate.entity';
+import {StationDailyAggregateEntity} from '../station/entities/station-daily-aggregate.entity';
+import {RouteDailyAggregateEntity} from '../route/entities/route-daily-aggregate.entity';
 import {IncidentArchiveEntity} from '../incident/entities/incident-archive.entity';
 import {RouteEntity} from '../route/entities/route.entity';
 
@@ -15,7 +17,7 @@ import {RouteEntity} from '../route/entities/route.entity';
             username: process.env.DB_USERNAME || 'postgres',
             password: process.env.DB_PASSWORD,
             database: process.env.DB_NAME,
-            entities: [TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, IncidentArchiveEntity, RouteEntity],
+            entities: [TrainEntity, TrainStopEventEntity, TrainDailyAggregateEntity, StationDailyAggregateEntity, RouteDailyAggregateEntity, IncidentArchiveEntity, RouteEntity],
             synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production',
             logging: false,
         }),

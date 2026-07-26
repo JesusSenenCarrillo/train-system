@@ -12,10 +12,19 @@ import {
 } from './dto/normalized-gtfs.dto';
 import {Train} from '@train-system/shared-types';
 import {CreateStopEventDto} from '../train/dto/create-stop-event.dto';
-import {toIso, toMadridLocalIso, trimStationId} from "../../../../libs/utils/src";
+import {toIso, toMadridLocalIso, trimStationId} from "@train-system/utils";
 
 @Injectable()
 export class GtfsNormalizerService {
+  /**
+   * Normalizes raw Renfe feeds into a unified ingestion bundle.
+   *
+   * Trip updates and vehicle positions are normalized for both LD and commuter networks,
+   * then cross-referenced to produce live train snapshots and stop events.
+   *
+   * @param input - The raw feeds from {@link GtfsClientService.fetchFeeds}.
+   * @returns A bundle with live snapshots, stop events, and normalized trip updates.
+   */
   normalizeFeeds(input: {
     tripUpdatesLd: GtfsTripUpdatesFeedDto;
     tripUpdatesCommuter: GtfsTripUpdatesFeedDto;
@@ -53,6 +62,13 @@ export class GtfsNormalizerService {
     };
   }
 
+  /**
+   * Normalizes a GTFS-RT trip updates feed into a consistent DTO structure.
+   *
+   * @param feed - The raw trip updates feed.
+   * @param source - Whether the feed belongs to the LD or commuter network.
+   * @returns A list of normalized trip updates with trimmed stop-time entries.
+   */
   private normalizeTripUpdates(
     feed: GtfsTripUpdatesFeedDto,
     source: 'LD' | 'COMMUTER',
@@ -86,6 +102,7 @@ export class GtfsNormalizerService {
         source,
         entityId: entity.id,
         tripId,
+        routeId: entity.tripUpdate?.trip?.routeId ?? null,
         scheduleRelationship: entity.tripUpdate?.trip?.scheduleRelationship ?? 'SCHEDULED',
         delaySeconds: entity.tripUpdate?.delay ?? null,
         wheelchairAccessible: entity.tripUpdate?.vehicle?.wheelchairAccessible ?? null,
@@ -96,6 +113,18 @@ export class GtfsNormalizerService {
     return output;
   }
 
+  /**
+   * Normalizes a GTFS-RT vehicle positions feed.
+   *
+   * For LD trains the commercial code is inferred from the vehicle or trip id and enriched
+   * with the LD fleet feed. For commuter trains the raw vehicle id is used directly.
+   *
+   * @param feed - The raw vehicle positions feed.
+   * @param source - Whether the feed belongs to the LD or commuter network.
+   * @param tripLookup - Map of trip id to its normalized trip update.
+   * @param ldFleetByCommercialCode - Map of commercial code to LD fleet metadata.
+   * @returns A list of normalized vehicle positions.
+   */
   private normalizeVehiclePositions(
     feed: GtfsVehiclePositionsFeedDto,
     source: 'LD' | 'COMMUTER',
@@ -145,6 +174,16 @@ export class GtfsNormalizerService {
     return output;
   }
 
+  /**
+   * Builds a domain {@link Train} snapshot from a normalized vehicle position.
+   *
+   * Enrichment priority: LD fleet feed first, then GTFS trip update, then raw vehicle data.
+   *
+   * @param live - The normalized vehicle position.
+   * @param tripLookup - Map of trip id to its normalized trip update.
+   * @param ldFleetByCommercialCode - Map of commercial code to LD fleet metadata.
+   * @returns A fully populated train snapshot ready for persistence.
+   */
   private toTrainSnapshot(
     live: NormalizedVehiclePositionDto,
     tripLookup: Map<string, NormalizedTripUpdateDto>,
@@ -196,6 +235,16 @@ export class GtfsNormalizerService {
     };
   }
 
+  /**
+   * Converts normalized trip updates into arrival and departure stop events.
+   *
+   * Skips stops marked as `SKIPPED`. Each stop with an arrival or departure time produces
+   * a distinct event linked to the train id resolved from the live snapshots.
+   *
+   * @param updates - The normalized trip updates.
+   * @param tripToTrainMap - Map of trip id to resolved train id.
+   * @returns A list of stop events ready for persistence.
+   */
   private toStopEvents(
     updates: NormalizedTripUpdateDto[],
     tripToTrainMap: Map<string, string>,
@@ -215,6 +264,7 @@ export class GtfsNormalizerService {
             trainId,
             stationId: trimStationId(stopUpdate.stopId)!,
             tripId: update.tripId,
+            routeId: update.routeId,
             eventType: 'ARRIVAL',
             occurredAt: stopUpdate.arrivalTime,
             delaySeconds: stopUpdate.arrivalDelaySeconds,
@@ -232,6 +282,7 @@ export class GtfsNormalizerService {
             trainId,
             stationId: trimStationId(stopUpdate.stopId)!,
             tripId: update.tripId,
+            routeId: update.routeId,
             eventType: 'DEPARTURE',
             occurredAt: stopUpdate.departureTime,
             delaySeconds: stopUpdate.departureDelaySeconds,
@@ -249,6 +300,12 @@ export class GtfsNormalizerService {
     return output;
   }
 
+  /**
+   * Indexes the LD fleet feed by commercial code for fast lookup during normalization.
+   *
+   * @param feed - The LD fleet feed.
+   * @returns A map from commercial code to fleet train record.
+   */
   private buildLdFleetIndex(feed: LdFleetFeedDto): Map<string, LdFleetTrainDto> {
     const map = new Map<string, LdFleetTrainDto>();
     for (const train of feed.trenes ?? []) {
@@ -259,6 +316,14 @@ export class GtfsNormalizerService {
     return map;
   }
 
+  /**
+   * Extracts the first run of 4 to 6 leading digits from a string.
+   *
+   * Used to infer a commercial train code from a raw vehicle or trip identifier.
+   *
+   * @param value - The raw identifier, which may be `null`.
+   * @returns The matched digit sequence, or `null` if no match is found.
+   */
   private extractLeadingDigits(value: string | null): string | null {
     if (!value) {
       return null;

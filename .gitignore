@@ -31,6 +31,12 @@ pnpm-debug.log*
 # Environment files
 .env
 .env.*
+.venv*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
 
 # OS/editor noise
 .DS_Store

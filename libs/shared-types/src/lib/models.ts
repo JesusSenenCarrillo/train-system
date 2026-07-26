@@ -1,3 +1,22 @@
+export enum IncidentSeverity {
+  CRITICAL = 'CRITICAL',
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW',
+  INFO = 'INFO',
+}
+
+export enum IncidentType {
+  DELAY = 'DELAY',
+  BREAKDOWN = 'BREAKDOWN',
+  WEATHER = 'WEATHER',
+  STRIKE = 'STRIKE',
+  MAINTENANCE = 'MAINTENANCE',
+  ACCIDENT = 'ACCIDENT',
+  INFRASTRUCTURE = 'INFRASTRUCTURE',
+  UNKNOWN = 'UNKNOWN',
+}
+
 export interface Station {
   id: number;
   name: string;
@@ -37,7 +56,7 @@ export interface Train {
   currentStopId?: string | null;
   latitude: number;
   longitude: number;
-  currentStatus: string;
+  currentStatus: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO';
   delayMinutes: number;
   delaySeconds: number;
   updatedAt: number;
@@ -85,7 +104,10 @@ export interface Incident {
   trainId?: string | null;
   stationId?: string | null;
   routeIds: string[];
-  type: string;
+  incidentType?: IncidentType | null;
+  severity?: IncidentSeverity | null;
+  estimatedDelayMinutes?: number | null;
+  affectedStopIds?: string[] | null;
   description: string;
   language?: string | null;
   startedAt: string;

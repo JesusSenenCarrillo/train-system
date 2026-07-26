@@ -1,16 +1,16 @@
-import {Module} from '@nestjs/common';
+import {forwardRef, Module} from '@nestjs/common';
 import {GtfsController} from './gtfs.controller';
 import {GtfsClientService} from './gtfs-client.service';
 import {GtfsNormalizerService} from './gtfs-normalizer.service';
 import {GtfsIngestionService} from './gtfs-ingestion.service';
-import {RouteInferenceService} from './route-inference.service';
 import {TrainModule} from '../train/train.module';
 import {RouteModule} from '../route/route.module';
 import {StationModule} from '../station/station.module';
 
 @Module({
-  imports: [TrainModule, RouteModule, StationModule],
+  imports: [forwardRef(() => TrainModule), RouteModule, StationModule],
   controllers: [GtfsController],
-  providers: [GtfsClientService, GtfsNormalizerService, GtfsIngestionService, RouteInferenceService],
+  providers: [GtfsClientService, GtfsNormalizerService, GtfsIngestionService],
+  exports: [GtfsClientService],
 })
 export class GtfsModule {}

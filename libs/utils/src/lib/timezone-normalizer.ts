@@ -1,3 +1,13 @@
+/**
+ * Converts a local Madrid date-time string (e.g. `2024-01-01T08:30:00`) into a UTC ISO string.
+ *
+ * The input is interpreted as Europe/Madrid local time, then converted to UTC using the
+ * offset at that instant. A second iteration is used because the offset itself depends on
+ * whether DST is active at the resolved UTC instant.
+ *
+ * @param value - A local date-time string in `YYYY-MM-DDTHH:MM[:SS]` format.
+ * @returns The UTC ISO 8601 representation, or `null` if the input cannot be parsed.
+ */
 export const toMadridLocalIso = (value: string): string | null => {
     const parsedLocal = parseLocalDateTime(value);
     if (!parsedLocal) {
@@ -18,6 +28,14 @@ export const toMadridLocalIso = (value: string): string | null => {
     return new Date(utcMillis).toISOString();
 }
 
+/**
+ * Normalizes an arbitrary date value into a UTC ISO string.
+ *
+ * Supports Unix timestamps (seconds since epoch) and standard date-time strings.
+ *
+ * @param value - A date string or Unix timestamp as a string. Optional.
+ * @returns The UTC ISO 8601 representation, or `null` if the value is missing or invalid.
+ */
 export const toIso = (value?: string): string | null => {
     if (!value) {
         return null;
@@ -31,6 +49,12 @@ export const toIso = (value?: string): string | null => {
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+/**
+ * Parses a local date-time string into its numeric components.
+ *
+ * @param value - The date-time string to parse.
+ * @returns An object with year, month, day, hour, minute and second, or `null` if the format does not match.
+ */
 const parseLocalDateTime = (value: string): {
     year: number;
     month: number;
@@ -54,6 +78,13 @@ const parseLocalDateTime = (value: string): {
     };
 }
 
+/**
+ * Computes the offset in milliseconds between UTC and the given IANA time zone at a specific instant.
+ *
+ * @param epochMillis - The UTC instant to evaluate, in milliseconds since epoch.
+ * @param timeZone - The IANA time zone identifier (e.g. `Europe/Madrid`).
+ * @returns The offset in milliseconds that must be subtracted from UTC to obtain local time.
+ */
 const getTimezoneOffsetMillis = (epochMillis: number, timeZone: string): number => {
     const parts = new Intl.DateTimeFormat('en-CA', {
         timeZone,

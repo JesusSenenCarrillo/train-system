@@ -17,6 +17,7 @@ export interface GtfsStopTimeUpdateDto {
 
 export interface GtfsTripDescriptorDto {
   tripId?: string;
+  routeId?: string;
   scheduleRelationship?: 'SCHEDULED' | 'CANCELED' | 'UNSCHEDULED';
 }
 

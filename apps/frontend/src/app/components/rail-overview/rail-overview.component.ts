@@ -42,9 +42,14 @@ import {RailDataStore} from '../../core/store/rail-data.store';
 export class RailOverviewComponent {
   readonly store = inject(RailDataStore);
 
+  /** Number of loaded stations. */
   readonly stationCount = computed(() => this.store.stations().length);
+  /** Number of loaded trains. */
   readonly trainCount = computed(() => this.store.trains().length);
+  /** Number of loaded incidents. */
   readonly incidentCount = computed(() => this.store.incidents().length);
+  /** Number of loaded schedule updates. */
   readonly scheduleUpdateCount = computed(() => this.store.scheduleUpdates().length);
+  /** Human-readable last sync label. */
   readonly syncLabel = computed(() => this.store.lastSyncAt() ?? 'Pendiente');
 }

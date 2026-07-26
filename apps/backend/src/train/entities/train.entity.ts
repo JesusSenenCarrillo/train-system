@@ -48,8 +48,8 @@ export class TrainEntity {
     @Column({type: 'double precision'})
     longitude!: number;
 
-    @Column({type: 'varchar', length: 30})
-    currentStatus!: string;
+    @Column({type: 'enum', enum: ['INCOMING_AT', 'STOPPED_AT', 'IN_TRANSIT_TO'], nullable: true, default: 'IN_TRANSIT_TO'})
+    currentStatus!: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO' | null;
 
     @Column({type: 'int', default: 0})
     delayMinutes!: number;

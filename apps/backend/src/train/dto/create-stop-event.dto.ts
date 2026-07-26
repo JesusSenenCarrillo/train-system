@@ -2,6 +2,7 @@ export interface CreateStopEventDto {
   trainId: string;
   stationId: string;
   tripId?: string | null;
+  routeId?: string | null;
   eventType: 'ARRIVAL' | 'DEPARTURE' | 'PASSING';
   occurredAt: string;
   delaySeconds?: number | null;

@@ -21,6 +21,7 @@ services:
       - '3000:3000'
     depends_on:
       - postgres
+      - predictor
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
@@ -30,6 +31,7 @@ services:
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE}
       NODE_ENV: ${NODE_ENV}
       GTFS_SYNC_SECONDS: ${GTFS_SYNC_SECONDS}
+      PREDICTOR_BASE_URL: ${PREDICTOR_BASE_URL}
 
   frontend:
     build:
@@ -42,6 +44,19 @@ services:
       - backend
     environment:
       API_PROXY_TARGET: ${API_PROXY_TARGET}
+
+  predictor:
+    build:
+      context: .
+      dockerfile: apps/predictor/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    depends_on:
+      - postgres
+    environment:
+      MODEL_PATH: ${PREDICTOR_MODEL_PATH:-model/delay_model.pkl}
+      DEFAULT_DELAY_MINUTES: ${PREDICTOR_DEFAULT_DELAY_MINUTES:-5.0}
 
 volumes:
   pgdata:
