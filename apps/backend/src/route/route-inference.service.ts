@@ -1,6 +1,6 @@
 import {Inject, Injectable} from '@nestjs/common';
-import {UpsertRouteDto} from '../route/route.service';
-import {NormalizedTripUpdateDto} from './dto/normalized-gtfs.dto';
+import {UpsertRouteDto} from './route.service';
+import {NormalizedTripUpdateDto} from '../gtfs/dto/normalized-gtfs.dto';
 import {Train} from '@train-system/shared-types';
 import {StationService} from '../station/station.service';
 
@@ -17,6 +17,18 @@ export class RouteInferenceService {
    * the origin and destination. A confidence score (0–1) is derived from the ratio
    * of stops that are recognized in the station registry. If a live snapshot exists
    * for the trip, its trainId is linked to the inferred route.
+   */
+  /**
+   * Builds a list of inferred routes from GTFS trip updates and live train snapshots.
+   *
+   * For each trip update, it deduplicates the stop sequence into a station path and
+   * skips trips with fewer than two distinct stops. The first and last stops become
+   * the origin and destination. A confidence score (0–1) is derived from the ratio
+   * of stops that are recognized in the station registry. If a live snapshot exists
+   * for the trip, its trainId is linked to the inferred route.
+   *
+   * @param payload - Object containing normalized trip updates and live train snapshots.
+   * @returns A list of inferred routes ready for upsert.
    */
   inferRoutes(payload: { tripUpdates: NormalizedTripUpdateDto[]; liveSnapshots: Train[] }): UpsertRouteDto[] {
     const output: UpsertRouteDto[] = [];
@@ -61,6 +73,13 @@ export class RouteInferenceService {
    * Filters a raw stop-ID list down to an ordered sequence of unique, non-empty IDs,
    * preserving the first occurrence of each and dropping duplicates and blanks.
    */
+  /**
+   * Filters a raw stop-ID list down to an ordered sequence of unique, non-empty IDs,
+   * preserving the first occurrence of each and dropping duplicates and blanks.
+   *
+   * @param stopIds - The raw stop ids.
+   * @returns The deduplicated stop ids.
+   */
   private uniqueStopIds(stopIds: string[]): string[] {
     const seen = new Set<string>();
     const output: string[] = [];
@@ -78,6 +97,14 @@ export class RouteInferenceService {
    * Estimates total trip duration in whole minutes by finding the earliest and latest
    * timestamps across all arrival and departure times in the trip update.
    * Returns 0 if fewer than two valid timestamps are available.
+   */
+  /**
+   * Estimates total trip duration in whole minutes by finding the earliest and latest
+   * timestamps across all arrival and departure times in the trip update.
+   * Returns 0 if fewer than two valid timestamps are available.
+   *
+   * @param tripUpdate - The normalized trip update.
+   * @returns Estimated duration in whole minutes.
    */
   private estimateDurationMinutes(tripUpdate: NormalizedTripUpdateDto): number {
     const times = tripUpdate.stopTimeUpdates

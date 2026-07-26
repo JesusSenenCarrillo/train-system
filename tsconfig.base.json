@@ -12,8 +12,9 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@train-system/shared-types": ["libs/shared-types/src/index.ts"],
-      "@train-system/algorithms": ["libs/algorithms/src/index.ts"]
+      "@train-system/shared-types": ["libs/shared-types/src/index"],
+      "@train-system/algorithms": ["libs/algorithms/src/index"],
+      "@train-system/utils": ["libs/utils/src/index"]
     }
   },
   "exclude": ["node_modules", "tmp"]

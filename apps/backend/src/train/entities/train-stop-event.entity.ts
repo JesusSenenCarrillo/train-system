@@ -17,6 +17,9 @@ export class TrainStopEventEntity {
   @Column({ type: 'varchar', length: 20, nullable: true })
   tripId!: string | null;
 
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  routeId!: string | null;
+
   @Column({ type: 'varchar', length: 20 })
   eventType!: 'ARRIVAL' | 'DEPARTURE' | 'PASSING';
 

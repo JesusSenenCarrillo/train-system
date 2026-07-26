@@ -1,4 +1,5 @@
 import {Module} from '@nestjs/common';
+import {ScheduleModule} from '@nestjs/schedule';
 import {AppController} from './app.controller';
 import {AppService} from './app.service';
 import {DatabaseModule} from './database/database.module';
@@ -10,7 +11,16 @@ import {RouteModule} from './route/route.module';
 import {GtfsModule} from './gtfs/gtfs.module';
 
 @Module({
-    imports: [DatabaseModule, StationModule, TrainModule, IncidentModule, RerouteModule, RouteModule, GtfsModule],
+    imports: [
+        ScheduleModule.forRoot(),
+        DatabaseModule,
+        StationModule,
+        TrainModule,
+        GtfsModule,
+        IncidentModule,
+        RerouteModule,
+        RouteModule,
+    ],
     controllers: [AppController],
     providers: [AppService],
 })

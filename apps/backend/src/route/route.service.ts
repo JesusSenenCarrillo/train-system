@@ -22,6 +22,11 @@ export class RouteService {
   @InjectRepository(RouteEntity)
   private readonly repository!: Repository<RouteEntity>;
 
+  /**
+   * Returns the most recently updated routes, purging stale entries first.
+   *
+   * @returns A list of up to 1000 routes in domain form.
+   */
   async findAll(): Promise<Route[]> {
     await this.purgeStaleRoutes();
     const rows = await this.repository.find({
@@ -44,6 +49,12 @@ export class RouteService {
     }));
   }
 
+  /**
+   * Inserts new routes or updates existing ones keyed by `routeKey`.
+   *
+   * @param routes - The routes to upsert.
+   * @returns The number of routes written.
+   */
   async upsertRoutes(routes: UpsertRouteDto[]): Promise<number> {
     let upsertedCount = 0;
 
@@ -87,6 +98,12 @@ export class RouteService {
     return upsertedCount;
   }
 
+  /**
+   * Removes routes that have not been updated within the grace period.
+   *
+   * @param graceMinutes - Minutes of tolerance before a route is considered stale. Defaults to 5.
+   * @returns The number of deleted rows.
+   */
   private async purgeStaleRoutes(graceMinutes = 5): Promise<number> {
     const cutoff = new Date(Date.now() - graceMinutes * 60 * 1000);
     const result = await this.repository.delete({

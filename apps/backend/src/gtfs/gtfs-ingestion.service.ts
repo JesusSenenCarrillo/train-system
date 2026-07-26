@@ -4,7 +4,7 @@ import {GtfsNormalizerService} from './gtfs-normalizer.service';
 import {TrainService} from '../train/train.service';
 import {TrainAggregateService} from '../train/train-aggregate.service';
 import {RouteService, UpsertRouteDto} from '../route/route.service';
-import {RouteInferenceService} from './route-inference.service';
+import {RouteInferenceService} from '../route/route-inference.service';
 import {IngestionSyncStatsDto} from './dto/normalized-gtfs.dto';
 import {LdFleetFeedDto, LdFleetWithStationsFeedDto} from './dto/gtfs-feed.dto';
 
@@ -33,6 +33,11 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
     @Inject(RouteInferenceService)
     private readonly routeInferenceService!: RouteInferenceService;
 
+    /**
+     * Starts the recurring GTFS synchronization loop when the module initializes.
+     *
+     * The interval is read from `GTFS_SYNC_SECONDS` and defaults to 20 seconds.
+     */
     onModuleInit(): void {
         const intervalSeconds = Number(process.env.GTFS_SYNC_SECONDS ?? 20);
         this.timer = setInterval(() => {
@@ -45,6 +50,9 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
         }, intervalSeconds * 1000);
     }
 
+    /**
+     * Stops the recurring synchronization timer when the module is destroyed.
+     */
     onModuleDestroy(): void {
         if (this.timer) {
             clearInterval(this.timer);
@@ -52,10 +60,23 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    /**
+     * Returns the statistics of the most recent successful sync.
+     *
+     * @returns The latest sync stats, or `null` if no sync has completed yet.
+     */
     getLatestStats(): IngestionSyncStatsDto | null {
         return this.latestStats;
     }
 
+    /**
+     * Runs a single GTFS synchronization cycle.
+     *
+     * Fetches all feeds, normalizes them, persists live train snapshots and stop events,
+     * refreshes recent aggregates, purges stale live trains, and upserts inferred and static routes.
+     *
+     * @returns Statistics describing what was written during the cycle.
+     */
     async syncNow(): Promise<IngestionSyncStatsDto> {
         if (this.running) {
             return this.latestStats ?? {
@@ -178,6 +199,14 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
      * Parses two "HH:MM" scheduled times and returns the difference in whole minutes.
      * Handles overnight trains where the arrival time is numerically less than departure.
      */
+    /**
+     * Parses two "HH:MM" scheduled times and returns the difference in whole minutes.
+     * Handles overnight trains where the arrival time is numerically less than departure.
+     *
+     * @param departureHhmm - Departure time in `HH:MM` format.
+     * @param arrivalHhmm - Arrival time in `HH:MM` format.
+     * @returns The duration in whole minutes, wrapping past midnight if needed.
+     */
     private calcDurationMinutes(departureHhmm: string, arrivalHhmm: string): number {
         const toMinutes = (hhmm: string): number => {
             const [h, m] = hhmm.split(':').map(Number);
@@ -190,6 +219,12 @@ export class GtfsIngestionService implements OnModuleInit, OnModuleDestroy {
         return diff >= 0 ? diff : diff + 24 * 60;
     }
 
+    /**
+     * Maps Renfe product codes to human-readable train types.
+     *
+     * @param codProduct - The numeric product code from the LD fleet feed.
+     * @returns The train type label, or `LD` when the code is unknown or missing.
+     */
     private mapProductCode(codProduct: number | undefined): string {
         // Source: trenType array from tiempo-real.largorecorrido.renfe.com JS
         const types: Record<number, string> = {

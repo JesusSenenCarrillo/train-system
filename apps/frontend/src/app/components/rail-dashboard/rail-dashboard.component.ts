@@ -42,10 +42,12 @@ import {RailReroutePanelComponent} from '../rail-reroute-panel/rail-reroute-pane
 export class RailDashboardComponent implements OnInit {
   readonly store = inject(RailDataStore);
 
+  /** Loads the initial dashboard snapshot when the component initializes. */
   ngOnInit(): void {
     this.store.loadSnapshot();
   }
 
+  /** Refreshes the dashboard snapshot. */
   refresh(): void {
     this.store.refresh();
   }

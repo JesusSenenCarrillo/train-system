@@ -5,6 +5,7 @@ export interface NormalizedTripUpdateDto {
   source: 'LD' | 'COMMUTER';
   entityId: string;
   tripId: string;
+  routeId: string | null;
   scheduleRelationship: 'SCHEDULED' | 'CANCELED' | 'UNSCHEDULED';
   delaySeconds: number | null;
   wheelchairAccessible: string | null;
@@ -26,7 +27,7 @@ export interface NormalizedVehiclePositionDto {
   stopId: string | null;
   latitude: number;
   longitude: number;
-  currentStatus: string;
+  currentStatus: 'INCOMING_AT' | 'STOPPED_AT' | 'IN_TRANSIT_TO';
   updatedAt: number;
   vehicleId: string | null;
   vehicleLabel: string | null;

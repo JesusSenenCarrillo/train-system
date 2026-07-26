@@ -30,22 +30,45 @@ export class StationService implements OnModuleInit {
   private stations: Station[] = [];
   private stationByCode: Map<string, Station> = new Map();
 
+  /**
+   * Loads the static station catalog when the module initializes.
+   */
   async onModuleInit(): Promise<void> {
     await this.loadStationsFromJson();
   }
 
+  /**
+   * Returns all loaded stations.
+   *
+   * @returns The full list of stations.
+   */
   findAll(): Station[] {
     return this.stations;
   }
 
+  /**
+   * Finds a station by its canonical code.
+   *
+   * @param code - The station code.
+   * @returns The matching station, or `undefined` if not found.
+   */
   findByCode(code: string): Station | undefined {
     return this.stationByCode.get(code);
   }
 
+  /**
+   * Checks whether a station code is known.
+   *
+   * @param code - The station code.
+   * @returns `true` if the code exists in the catalog.
+   */
   hasCode(code: string): boolean {
     return this.stationByCode.has(code);
   }
 
+  /**
+   * Reads and parses the static stations JSON file into memory.
+   */
   private async loadStationsFromJson(): Promise<void> {
     const stationsPath = this.resolveStationsFilePath();
     const buffer = await readFile(stationsPath);
@@ -89,11 +112,16 @@ export class StationService implements OnModuleInit {
     this.stationByCode = new Map(this.stations.map((station) => [station.code, station]));
   }
 
+  /**
+   * Resolves the path to the static stations JSON file, checking common locations.
+   *
+   * @returns The first existing candidate path, defaulting to the first candidate.
+   */
   private resolveStationsFilePath(): string {
     const candidates = [
-      path.resolve(process.cwd(), 'src', 'database', 'static_data', 'stations.json'),
-      path.resolve(process.cwd(), 'apps', 'backend', 'src', 'database', 'static_data', 'stations.json'),
-      path.resolve(__dirname, '..', 'database', 'static_data', 'stations.json'),
+      path.resolve(process.cwd(), 'src', 'database', 'static-data', 'stations.json'),
+      path.resolve(process.cwd(), 'apps', 'backend', 'src', 'database', 'static-data', 'stations.json'),
+      path.resolve(__dirname, '..', 'database', 'static-data', 'stations.json'),
     ];
 
     for (const candidate of candidates) {
@@ -105,6 +133,13 @@ export class StationService implements OnModuleInit {
     return candidates[0];
   }
 
+  /**
+   * Parses a single raw station record using the field index map.
+   *
+   * @param record - The raw record array from the JSON file.
+   * @param fieldIndexMap - Map from field name to record index.
+   * @returns The parsed row, or `null` if required fields are missing or invalid.
+   */
   private parseStationRow(
       record: Array<string | number>,
       fieldIndexMap: Map<string, number>

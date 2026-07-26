@@ -14,6 +14,11 @@ export class TrainService {
   @InjectRepository(TrainStopEventEntity)
   private readonly stopEventRepository!: Repository<TrainStopEventEntity>;
 
+  /**
+   * Returns all live trains, purging stale entries first.
+   *
+   * @returns A list of live trains ordered by most recent sighting.
+   */
   async findAll(): Promise<Train[]> {
     await this.purgeStaleLiveTrains();
     const rows = await this.trainLiveRepository.find({
@@ -24,6 +29,12 @@ export class TrainService {
     return rows.map((row) => this.toTrainModel(row));
   }
 
+  /**
+   * Creates or updates the live state of a single train.
+   *
+   * @param payload - The train snapshot to persist.
+   * @returns The persisted train in domain form.
+   */
   async upsertLiveState(payload: Train): Promise<Train> {
     const now = new Date();
     const liveRow = this.trainLiveRepository.create({
@@ -66,6 +77,12 @@ export class TrainService {
     return this.toTrainModel(saved);
   }
 
+  /**
+   * Removes live trains that have not been seen within the grace period.
+   *
+   * @param graceMinutes - Minutes of tolerance before a train is considered stale. Defaults to 5.
+   * @returns The number of deleted rows.
+   */
   async purgeStaleLiveTrains(graceMinutes = 5): Promise<number> {
     const cutoff = new Date(Date.now() - graceMinutes * 60 * 1000);
     const result = await this.trainLiveRepository.delete({
@@ -74,6 +91,12 @@ export class TrainService {
     return result.affected ?? 0;
   }
 
+  /**
+   * Persists a stop event if an equivalent event does not already exist.
+   *
+   * @param payload - The stop event data.
+   * @returns The created entity, or `null` if a duplicate was found.
+   */
   async createStopEvent(payload: CreateStopEventDto): Promise<TrainStopEventEntity | null> {
     const occurredAt = new Date(payload.occurredAt);
     const existing = await this.stopEventRepository.findOne({
@@ -92,6 +115,7 @@ export class TrainService {
       trainId: payload.trainId,
       stationId: payload.stationId,
       tripId: payload.tripId ?? null,
+      routeId: payload.routeId ?? null,
       eventType: payload.eventType,
       occurredAt,
       delaySeconds: payload.delaySeconds ?? null,
@@ -102,6 +126,12 @@ export class TrainService {
     return this.stopEventRepository.save(eventRow);
   }
 
+  /**
+   * Queries stop events with optional train and station filters.
+   *
+   * @param filters - Optional query filters and result limit.
+   * @returns A list of stop events ordered by occurrence time descending.
+   */
   async findStopEvents(filters: { trainId?: string; stationId?: string; limit?: number }): Promise<TrainStopEventEntity[]> {
     const where: { trainId?: string; stationId?: string } = {};
     if (filters.trainId) {
@@ -118,6 +148,11 @@ export class TrainService {
     });
   }
 
+  /**
+   * Builds GTFS-RT style schedule updates from the most recent stop events.
+   *
+   * @returns A list of schedule updates, one per stop event.
+   */
   async findScheduleUpdates(): Promise<ScheduleUpdate[]> {
     const events = await this.stopEventRepository.find({
       order: { occurredAt: 'DESC' },
@@ -145,6 +180,13 @@ export class TrainService {
     });
   }
 
+  /**
+   * Returns recent stop events as plain objects suitable for LLM context windows.
+   *
+   * @param limit - Maximum number of events to return. Defaults to 300.
+   * @param trainId - Optional train id filter.
+   * @returns A list of serialized stop event records.
+   */
   async getLlmContext(limit = 300, trainId?: string): Promise<Array<Record<string, unknown>>> {
     const rows = await this.stopEventRepository.find({
       where: trainId ? { trainId } : {},
@@ -163,6 +205,12 @@ export class TrainService {
     }));
   }
 
+  /**
+   * Converts a live train entity into the domain {@link Train} model.
+   *
+   * @param row - The persisted entity.
+   * @returns The domain model.
+   */
   private toTrainModel(row: TrainEntity): Train {
     return {
       id: row.id,
@@ -180,7 +228,7 @@ export class TrainService {
       currentStopId: row.currentStopId,
       latitude: row.latitude,
       longitude: row.longitude,
-      currentStatus: row.currentStatus,
+      currentStatus: row.currentStatus ?? 'IN_TRANSIT_TO',
       delayMinutes: row.delayMinutes,
       delaySeconds: row.delaySeconds,
       updatedAt: Number(row.updatedAt),

@@ -2,13 +2,13 @@ import {computed, inject, Injectable, signal} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {forkJoin} from 'rxjs';
 import {
-  Incident,
-  IncidentPayload,
-  ReroutePlan,
-  Route,
-  ScheduleUpdate,
-  Station,
-  Train,
+    Incident,
+    IncidentPayload,
+    ReroutePlan,
+    Route,
+    ScheduleUpdate,
+    Station,
+    Train,
 } from '@train-system/shared-types';
 
 @Injectable({ providedIn: 'root' })
@@ -43,22 +43,31 @@ export class RailDataStore {
   readonly error = computed(() => this.errorState());
   readonly lastSyncAt = computed(() => this.lastSyncAtState());
 
+  /** Computed signal that resolves the currently selected train, if any. */
   readonly selectedTrain = computed(() => {
     const selectedId = this.selectedTrainIdState();
     return this.trainsState().find((train) => String(train.id) === selectedId) ?? null;
   });
 
+  /** Computed signal that resolves the currently selected station, if any. */
   readonly selectedStation = computed(() => {
     const selectedId = this.selectedStationIdState();
     return this.stationsState().find((station) => String(station.id) === selectedId) ?? null;
   });
 
+  /** Computed signal that returns the most recently loaded incident. */
   readonly latestIncident = computed(() => this.incidentsState()[0] ?? null);
 
+  /** Computed signal that is true when a train or station has been selected. */
   readonly canCreateIncident = computed(() => {
     return Boolean(this.selectedTrainIdState() || this.selectedStationIdState());
   });
 
+  /**
+   * Loads the full dashboard snapshot from the backend in parallel.
+   *
+   * Updates all state signals and records the sync timestamp on success.
+   */
   loadSnapshot(): void {
     this.loadingState.set(true);
     this.errorState.set(null);
@@ -86,26 +95,52 @@ export class RailDataStore {
     });
   }
 
+  /** Refreshes the dashboard snapshot. */
   refresh(): void {
     this.loadSnapshot();
   }
 
+  /**
+   * Sets the id of the selected train.
+   *
+   * @param value - The train id.
+   */
   setSelectedTrainId(value: string): void {
     this.selectedTrainIdState.set(value);
   }
 
+  /**
+   * Sets the id of the selected station.
+   *
+   * @param value - The station id.
+   */
   setSelectedStationId(value: string): void {
     this.selectedStationIdState.set(value);
   }
 
+  /**
+   * Sets the type of incident to create.
+   *
+   * @param value - The incident type.
+   */
   setIncidentType(value: 'delay' | 'failure' | 'track_blocked'): void {
     this.incidentTypeState.set(value);
   }
 
+  /**
+   * Sets the free-text description of the incident to create.
+   *
+   * @param value - The description.
+   */
   setDescription(value: string): void {
     this.descriptionState.set(value);
   }
 
+  /**
+   * Creates an incident on the backend and then requests a reroute plan for it.
+   *
+   * Updates the local incident list and reroute plan state on success.
+   */
   createIncident(): void {
     const payload: IncidentPayload = {
       trainId: this.selectedTrainIdState() ? Number(this.selectedTrainIdState()) : null,

@@ -26,10 +26,16 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
 
   private timer: NodeJS.Timeout | null = null;
 
+  /**
+   * Schedules the next daily aggregate refresh when the module initializes.
+   */
   onModuleInit(): void {
     this.scheduleNextRun();
   }
 
+  /**
+   * Cancels the pending daily refresh timer when the module is destroyed.
+   */
   onModuleDestroy(): void {
     if (this.timer) {
       clearTimeout(this.timer);
@@ -37,6 +43,12 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Recomputes daily aggregates for the last N service dates and replaces existing rows.
+   *
+   * @param daysBack - Number of recent days to refresh. Defaults to 2.
+   * @returns The number of aggregate rows written.
+   */
   async refreshRecentAggregates(daysBack = 2): Promise<number> {
     const dates = this.getRecentServiceDates(daysBack);
     if (dates.length === 0) {
@@ -76,6 +88,12 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     return aggregates.length;
   }
 
+  /**
+   * Deletes stop events older than the configured retention window.
+   *
+   * @param keepDays - Number of days to retain. Defaults to 3.
+   * @returns The number of deleted rows.
+   */
   async purgeOldStopEvents(keepDays = 3): Promise<number> {
     const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000);
     const result = await this.stopEventRepository.delete({
@@ -88,6 +106,9 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     return affected;
   }
 
+  /**
+   * Schedules the daily aggregate computation to run at 00:10.
+   */
   private scheduleNextRun(): void {
     const now = new Date();
     const nextRun = new Date(now);
@@ -107,6 +128,12 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     }, delay);
   }
 
+  /**
+   * Builds a list of recent service dates in Madrid local time.
+   *
+   * @param daysBack - Number of days to include, ending today.
+   * @returns ISO date strings in `YYYY-MM-DD` format.
+   */
   private getRecentServiceDates(daysBack: number): string[] {
     const dates: string[] = [];
     for (let i = daysBack - 1; i >= 0; i -= 1) {
@@ -117,6 +144,13 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     return dates;
   }
 
+  /**
+   * Groups stop events into per-train, per-day buckets and computes running metrics.
+   *
+   * @param events - The stop events to aggregate.
+   * @param allowedDates - Service dates that should be included in the output.
+   * @returns A map keyed by `serviceDate:trainId`.
+   */
   private groupEvents(events: TrainStopEventEntity[], allowedDates: string[]): Map<string, AggregateBucket> {
     const buckets = new Map<string, AggregateBucket>();
 
@@ -137,6 +171,9 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
         metrics: {
           eventTypes: {},
           sources: {},
+          delayBuckets: {onTime: 0, minor: 0, moderate: 0, severe: 0},
+          stationIds: [] as string[],
+          tripIds: [] as string[],
         },
       };
 
@@ -150,8 +187,34 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
 
       const eventTypes = bucket.metrics.eventTypes as Record<string, number>;
       const sources = bucket.metrics.sources as Record<string, number>;
+      const delayBuckets = bucket.metrics.delayBuckets as Record<string, number>;
+
       eventTypes[event.eventType] = (eventTypes[event.eventType] ?? 0) + 1;
       sources[event.source] = (sources[event.source] ?? 0) + 1;
+
+      const delayMinutes = Math.abs(delaySeconds) / 60;
+      if (delayMinutes < 5) {
+        delayBuckets.onTime += 1;
+      } else if (delayMinutes < 15) {
+        delayBuckets.minor += 1;
+      } else if (delayMinutes < 30) {
+        delayBuckets.moderate += 1;
+      } else {
+        delayBuckets.severe += 1;
+      }
+
+      const stationIds = bucket.metrics.stationIds as string[];
+      if (!stationIds.includes(event.stationId)) {
+        stationIds.push(event.stationId);
+      }
+
+      if (event.tripId) {
+        const tripIds = bucket.metrics.tripIds as string[];
+        if (!tripIds.includes(event.tripId)) {
+          tripIds.push(event.tripId);
+        }
+      }
+
       bucket.metrics.lastEventAt = event.occurredAt.toISOString();
 
       buckets.set(key, bucket);
@@ -160,6 +223,12 @@ export class TrainAggregateService implements OnModuleInit, OnModuleDestroy {
     return buckets;
   }
 
+  /**
+   * Converts a UTC date to a Madrid-local service date string.
+   *
+   * @param date - The date to convert.
+   * @returns The date in `YYYY-MM-DD` format according to Europe/Madrid.
+   */
   private toServiceDate(date: Date): string {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Madrid',
