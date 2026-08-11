@@ -6,7 +6,7 @@ COPY apps/predictor/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY apps/predictor/main.py ./
-COPY apps/predictor/model ./model
+RUN mkdir -p model
 
 EXPOSE 8000
 
