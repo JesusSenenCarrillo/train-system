@@ -91,6 +91,26 @@ textarea {
   color: #b91c1c;
 }
 
+.company-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.company-table th,
+.company-table td {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.55rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.company-table th {
+  font-weight: 700;
+  color: #334155;
+  background: #f8fafc;
+}
+
 .map-canvas {
   height: 420px;
   border-radius: 12px;

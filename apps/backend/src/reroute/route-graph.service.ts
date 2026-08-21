@@ -18,31 +18,41 @@ export interface RouteLeg {
   incidents: {type: string | null; severity: string | null; description: string}[];
 }
 
+export interface RoutingConstraints {
+  blockedRouteIds?: string[];
+  blockedStationIds?: string[];
+}
+
 @Injectable()
 export class RouteGraphService {
   /**
    * Computes up to two route alternatives between two stations using Dijkstra.
    * The second alternative avoids edges used by the first path.
    */
-  findAlternatives(routes: Route[], fromStationId: string, toStationId: string): RouteAlternative[] {
-    const edges = this.buildEdges(routes);
+  findAlternatives(
+    routes: Route[],
+    fromStationId: string,
+    toStationId: string,
+    constraints: RoutingConstraints = {},
+  ): RouteAlternative[] {
+    const edges = this.buildEdges(routes, {constraints});
     const directPath = this.dijkstra(edges, fromStationId, toStationId);
 
     const alternatives: RouteAlternative[] = [];
 
     if (directPath && directPath.path.length >= 2) {
-      const legs = this.buildLegs(directPath.path, routes);
+      const legs = this.buildLegs(directPath.path, routes, constraints);
       alternatives.push(this.toAlternative(legs));
     }
 
-    const penalizedEdges = this.buildEdges(routes, directPath?.path);
+    const penalizedEdges = this.buildEdges(routes, {avoidPath: directPath?.path, constraints});
     const altPath = this.dijkstra(penalizedEdges, fromStationId, toStationId);
 
     if (altPath && altPath.path.length >= 2) {
       const directKey = directPath?.path.join('|');
       const altKey = altPath.path.join('|');
       if (altKey !== directKey) {
-        const legs = this.buildLegs(altPath.path, routes);
+        const legs = this.buildLegs(altPath.path, routes, constraints);
         alternatives.push(this.toAlternative(legs));
       }
     }
@@ -50,7 +60,10 @@ export class RouteGraphService {
     return alternatives.sort((a, b) => a.totalDurationMinutes - b.totalDurationMinutes);
   }
 
-  private buildEdges(routes: Route[], avoidPath?: string[]): Map<string, Map<string, number>> {
+  private buildEdges(
+    routes: Route[],
+    options?: {avoidPath?: string[]; constraints?: RoutingConstraints},
+  ): Map<string, Map<string, number>> {
     const edges = new Map<string, Map<string, number>>();
 
     for (const route of routes) {
@@ -66,8 +79,12 @@ export class RouteGraphService {
           edges.set(from, new Map());
         }
 
+        if (this.isRouteImpacted(route, options?.constraints, from, to)) {
+          continue;
+        }
+
         const existing = edges.get(from)!.get(to);
-        const cost = this.edgeCost(route, avoidPath);
+        const cost = this.edgeCost(route, options?.avoidPath);
         if (existing === undefined || cost < existing) {
           edges.get(from)!.set(to, cost);
         }
@@ -86,13 +103,18 @@ export class RouteGraphService {
     const previous = new Map<string, string | undefined>();
     const unvisited = new Set<string>();
 
-    for (const node of edges.keys()) {
+    for (const [node, neighbors] of edges) {
+      unvisited.add(node);
+      for (const neighbor of neighbors.keys()) {
+        unvisited.add(neighbor);
+      }
+    }
+    unvisited.add(start);
+    unvisited.add(goal);
+
+    for (const node of unvisited) {
       distances.set(node, Infinity);
       previous.set(node, undefined);
-      unvisited.add(node);
-    }
-    if (!distances.has(start)) {
-      return undefined;
     }
 
     distances.set(start, 0);
@@ -124,7 +146,7 @@ export class RouteGraphService {
         return {path, cost: smallest};
       }
 
-      const neighbors = edges.get(current) ?? new Map();
+      const neighbors = edges.get(current) ?? new Map<string, number>();
       for (const [neighbor, weight] of neighbors) {
         if (!unvisited.has(neighbor)) {
           continue;
@@ -140,7 +162,10 @@ export class RouteGraphService {
     return undefined;
   }
 
-  private edgeCost(route: Route, avoidPath?: string[]): number {
+  private edgeCost(
+    route: Route,
+    avoidPath?: string[],
+  ): number {
     let cost = route.duration > 0 ? route.duration : 1;
 
     if (route.source === 'INFERRED') {
@@ -164,13 +189,13 @@ export class RouteGraphService {
     return cost;
   }
 
-  private buildLegs(path: string[], routes: Route[]): RouteLeg[] {
+  private buildLegs(path: string[], routes: Route[], constraints: RoutingConstraints): RouteLeg[] {
     const legs: RouteLeg[] = [];
 
     for (let i = 0; i < path.length - 1; i += 1) {
       const from = path[i];
       const to = path[i + 1];
-      const legRoute = this.findBestLegRoute(from, to, routes);
+      const legRoute = this.findBestLegRoute(from, to, routes, constraints);
 
       legs.push({
         from,
@@ -185,7 +210,12 @@ export class RouteGraphService {
     return legs;
   }
 
-  private findBestLegRoute(from: string, to: string, routes: Route[]): Route | undefined {
+  private findBestLegRoute(
+    from: string,
+    to: string,
+    routes: Route[],
+    constraints: RoutingConstraints,
+  ): Route | undefined {
     const candidates = routes.filter((route) => {
       const path = route.pathStationIds;
       const fromIdx = path.indexOf(from);
@@ -194,12 +224,45 @@ export class RouteGraphService {
     });
 
     return candidates.sort((a, b) => {
+      const aImpacted = this.isRouteImpacted(a, constraints, from, to);
+      const bImpacted = this.isRouteImpacted(b, constraints, from, to);
+      if (!aImpacted && bImpacted) return -1;
+      if (aImpacted && !bImpacted) return 1;
+
       const aDirect = a.pathStationIds.indexOf(from) + 1 === a.pathStationIds.indexOf(to);
       const bDirect = b.pathStationIds.indexOf(from) + 1 === b.pathStationIds.indexOf(to);
       if (aDirect && !bDirect) return -1;
       if (!aDirect && bDirect) return 1;
       return (a.duration ?? 0) - (b.duration ?? 0);
     })[0];
+  }
+
+  private isRouteImpacted(
+    route: Route,
+    constraints: RoutingConstraints | undefined,
+    edgeFrom: string,
+    edgeTo: string,
+  ): boolean {
+    if (!constraints) {
+      return false;
+    }
+
+    const blockedRouteIds = new Set((constraints.blockedRouteIds ?? []).map((id) => id.toLowerCase()));
+    const blockedStationIds = new Set((constraints.blockedStationIds ?? []).map((id) => id.toLowerCase()));
+
+    if (blockedStationIds.has(edgeFrom.toLowerCase()) || blockedStationIds.has(edgeTo.toLowerCase())) {
+      return true;
+    }
+
+    if (route.pathStationIds.some((stationId) => blockedStationIds.has(stationId.toLowerCase()))) {
+      return true;
+    }
+
+    const routeIdentifiers = [route.routeKey, route.tripId, route.trainId]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => value.toLowerCase());
+
+    return routeIdentifiers.some((identifier) => blockedRouteIds.has(identifier));
   }
 
   private toAlternative(legs: RouteLeg[]): RouteAlternative {

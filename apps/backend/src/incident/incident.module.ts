@@ -5,11 +5,14 @@ import {AlertClassifierService} from './alert-classifier.service';
 import {TypeOrmModule} from '@nestjs/typeorm';
 import {IncidentArchiveEntity} from './entities/incident-archive.entity';
 import {GtfsModule} from '../gtfs/gtfs.module';
+import {TrainStopEventEntity} from '../train/entities/train-stop-event.entity';
+import {RouteEntity} from '../route/entities/route.entity';
+import {IncidentImpactInferenceService} from './incident-impact-inference.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([IncidentArchiveEntity]), forwardRef(() => GtfsModule)],
+  imports: [TypeOrmModule.forFeature([IncidentArchiveEntity, TrainStopEventEntity, RouteEntity]), forwardRef(() => GtfsModule)],
   controllers: [IncidentController],
-  providers: [IncidentService, AlertClassifierService],
-  exports: [IncidentService, AlertClassifierService],
+  providers: [IncidentService, AlertClassifierService, IncidentImpactInferenceService],
+  exports: [IncidentService, AlertClassifierService, IncidentImpactInferenceService],
 })
 export class IncidentModule {}
