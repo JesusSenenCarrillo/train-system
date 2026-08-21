@@ -25,6 +25,12 @@ export class IncidentArchiveEntity {
   @Column({ type: 'text', array: true, default: '{}' })
   routeIds!: string[];
 
+  @Column({ type: 'text', array: true, nullable: true, default: '{}' })
+  affectedTrainIds!: string[] | null;
+
+  @Column({ type: 'text', array: true, nullable: true, default: '{}' })
+  affectedStationIds!: string[] | null;
+
   @Column({ type: 'enum', enum: IncidentType, nullable: true })
   incidentType!: IncidentType | null;
 

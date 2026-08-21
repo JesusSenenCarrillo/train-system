@@ -2,13 +2,15 @@ import {computed, inject, Injectable, signal} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {forkJoin} from 'rxjs';
 import {
-    Incident,
-    IncidentPayload,
-    ReroutePlan,
-    Route,
-    ScheduleUpdate,
-    Station,
-    Train,
+  Incident,
+  IncidentPayload,
+  IncidentSeverity,
+  IncidentType,
+  ReroutePlan,
+  Route,
+  ScheduleUpdate,
+  Station,
+  Train,
 } from '@train-system/shared-types';
 
 @Injectable({ providedIn: 'root' })
@@ -42,6 +44,48 @@ export class RailDataStore {
   readonly loading = computed(() => this.loadingState());
   readonly error = computed(() => this.errorState());
   readonly lastSyncAt = computed(() => this.lastSyncAtState());
+  readonly criticalAlertImpactRows = computed(() => {
+    const trains = this.trainsState();
+    const stations = this.stationsState();
+
+    const trainLabelById = new Map<string, string>();
+    for (const train of trains) {
+      trainLabelById.set(train.trainId, train.trainId);
+      if (train.id !== undefined) {
+        trainLabelById.set(String(train.id), train.trainId);
+      }
+    }
+
+    const stationLabelById = new Map<string, string>();
+    for (const station of stations) {
+      stationLabelById.set(station.code, station.name);
+      stationLabelById.set(String(station.id), station.name);
+    }
+
+    return this.incidentsState()
+      .filter(
+        (incident) =>
+          incident.severity === IncidentSeverity.CRITICAL ||
+          incident.incidentType === IncidentType.BREAKDOWN,
+      )
+      .map((incident) => {
+        const trainIds = this.uniqueValues([...(incident.affectedTrainIds ?? []), incident.trainId ?? '']);
+        const stationIds = this.uniqueValues([
+          ...(incident.affectedStationIds ?? []),
+          ...(incident.affectedStopIds ?? []),
+          incident.stationId ?? '',
+        ]);
+
+        return {
+          id: incident.id,
+          startedAt: incident.startedAt,
+          incidentType: incident.incidentType ?? IncidentType.UNKNOWN,
+          severity: incident.severity ?? IncidentSeverity.INFO,
+          trains: trainIds.map((id) => trainLabelById.get(id) ?? id),
+          stations: stationIds.map((id) => stationLabelById.get(id) ?? id),
+        };
+      });
+  });
 
   /** Computed signal that resolves the currently selected train, if any. */
   readonly selectedTrain = computed(() => {
@@ -165,5 +209,11 @@ export class RailDataStore {
         this.errorState.set('No se pudo crear la incidencia.');
       },
     });
+  }
+
+  private uniqueValues(values: string[]): string[] {
+    return Array.from(
+      new Set(values.filter((value) => Boolean(value))),
+    ).sort((a, b) => a.localeCompare(b));
   }
 }

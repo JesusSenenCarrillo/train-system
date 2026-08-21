@@ -36,6 +36,7 @@ export class RouteService {
 
     return rows.map((row) => ({
       id: row.id,
+      routeKey: row.routeKey,
       originStationId: row.originStationId,
       destinationStationId: row.destinationStationId,
       duration: row.durationMinutes,

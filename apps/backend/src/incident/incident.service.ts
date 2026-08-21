@@ -4,13 +4,17 @@ import {InjectRepository} from '@nestjs/typeorm';
 import {Repository} from 'typeorm';
 import {IncidentArchiveEntity} from './entities/incident-archive.entity';
 import {AlertClassifierService} from './alert-classifier.service';
+import {IncidentImpactInferenceService} from './incident-impact-inference.service';
 
 @Injectable()
 export class IncidentService {
     @InjectRepository(IncidentArchiveEntity)
     private readonly incidentRepository!: Repository<IncidentArchiveEntity>;
 
-    constructor(private readonly classifier: AlertClassifierService) {}
+    constructor(
+        private readonly classifier: AlertClassifierService,
+        private readonly impactInference: IncidentImpactInferenceService,
+    ) {}
 
     /**
      * Creates a new incident from a GTFS alert or a manual payload.
@@ -33,15 +37,23 @@ export class IncidentService {
             ? (firstTranslation?.text ?? payload.description ?? 'Service alert')
             : (payload.description ?? 'Manual incident');
         const classification = this.classifier.classify(description.toLowerCase());
+        const inferredImpact = await this.impactInference.infer({
+            routeIds,
+            stopIds: affectedStopIds,
+            trainId: payload.trainId ? String(payload.trainId) : null,
+            stationId: payload.stationId ? String(payload.stationId) : null,
+        });
 
         const incidentRow: IncidentArchiveEntity = this.incidentRepository.create(
             alert
                 ? {
                     externalId: payload.id ?? null,
                     source: 'GTFS_RT',
-                    trainId: payload.trainId ? String(payload.trainId) : null,
-                    stationId: payload.stationId ? String(payload.stationId) : null,
+                    trainId: inferredImpact.primaryTrainId,
+                    stationId: inferredImpact.primaryStationId,
                     routeIds,
+                    affectedTrainIds: inferredImpact.affectedTrainIds,
+                    affectedStationIds: inferredImpact.affectedStationIds,
                     affectedStopIds: affectedStopIds.length > 0 ? affectedStopIds : null,
                     description,
                     language: firstTranslation?.language ?? null,
@@ -55,9 +67,11 @@ export class IncidentService {
                 : {
                     externalId: null,
                     source: 'MANUAL',
-                    trainId: payload.trainId ? String(payload.trainId) : null,
-                    stationId: payload.stationId ? String(payload.stationId) : null,
+                    trainId: inferredImpact.primaryTrainId,
+                    stationId: inferredImpact.primaryStationId,
                     routeIds: [],
+                    affectedTrainIds: inferredImpact.affectedTrainIds,
+                    affectedStationIds: inferredImpact.affectedStationIds,
                     affectedStopIds: affectedStopIds.length > 0 ? affectedStopIds : null,
                     description,
                     language: null,
@@ -83,7 +97,7 @@ export class IncidentService {
         const rows = await this.incidentRepository.find({
             order: {startedAt: 'DESC'},
         });
-        return rows.map((row) => this.toModel(row));
+        return Promise.all(rows.map((row) => this.toModel(row)));
     }
 
     /**
@@ -103,14 +117,33 @@ export class IncidentService {
      * @param row - The persisted entity.
      * @returns The domain model.
      */
-    private toModel(row: IncidentArchiveEntity): Incident {
+    private async toModel(row: IncidentArchiveEntity): Promise<Incident> {
+        const inferredImpact = await this.impactInference.infer({
+            routeIds: row.routeIds ?? [],
+            stopIds: row.affectedStopIds ?? [],
+            trainId: row.trainId,
+            stationId: row.stationId,
+        });
+
         return {
             id: row.id,
             externalId: row.externalId,
             source: row.source,
-            trainId: row.trainId,
-            stationId: row.stationId,
+            trainId: row.trainId ?? inferredImpact.primaryTrainId,
+            stationId: row.stationId ?? inferredImpact.primaryStationId,
+            affectedTrainIds:
+                row.affectedTrainIds && row.affectedTrainIds.length > 0
+                    ? row.affectedTrainIds
+                    : inferredImpact.affectedTrainIds,
+            affectedStationIds:
+                row.affectedStationIds && row.affectedStationIds.length > 0
+                    ? row.affectedStationIds
+                    : inferredImpact.affectedStationIds,
             routeIds: row.routeIds,
+            incidentType: row.incidentType,
+            severity: row.severity,
+            estimatedDelayMinutes: row.estimatedDelayMinutes,
+            affectedStopIds: row.affectedStopIds,
             description: row.description,
             language: row.language,
             startedAt: row.startedAt.toISOString(),

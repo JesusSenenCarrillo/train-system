@@ -28,6 +28,7 @@ export interface Station {
 
 export interface Route {
   id: number;
+  routeKey?: string;
   originStationId: string;
   destinationStationId: string;
   duration: number;
@@ -103,6 +104,8 @@ export interface Incident {
   source: 'MANUAL' | 'GTFS_RT';
   trainId?: string | null;
   stationId?: string | null;
+  affectedTrainIds?: string[] | null;
+  affectedStationIds?: string[] | null;
   routeIds: string[];
   incidentType?: IncidentType | null;
   severity?: IncidentSeverity | null;

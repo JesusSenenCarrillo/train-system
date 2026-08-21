@@ -6,6 +6,7 @@ import {GtfsClientService} from '../gtfs/gtfs-client.service';
 import {GtfsAlertEntityDto,} from '../gtfs/dto/gtfs-alert.dto';
 import {IncidentArchiveEntity} from './entities/incident-archive.entity';
 import {IncidentSeverity, IncidentType} from '@train-system/shared-types';
+import {IncidentImpactInferenceService} from './incident-impact-inference.service';
 
 @Injectable()
 export class AlertClassifierService {
@@ -13,6 +14,7 @@ export class AlertClassifierService {
 
   constructor(
     private readonly gtfsClient: GtfsClientService,
+    private readonly impactInference: IncidentImpactInferenceService,
     @InjectRepository(IncidentArchiveEntity)
     private readonly incidentRepo: Repository<IncidentArchiveEntity>,
   ) {}
@@ -54,21 +56,29 @@ export class AlertClassifierService {
 
     const informed = alert?.informedEntity ?? [];
     const routeIds = [
-      ...new Set(informed.map((e) => e.routeId).filter(Boolean)),
+      ...new Set(informed.map((e) => e.routeId).filter((value): value is string => Boolean(value))),
     ];
     const stopIds = [
-      ...new Set(informed.map((e) => e.stopId).filter(Boolean)),
+      ...new Set(informed.map((e) => e.stopId).filter((value): value is string => Boolean(value))),
     ];
+    const inferredImpact = await this.impactInference.infer({
+      routeIds,
+      stopIds,
+    });
 
     const activePeriod = alert?.activePeriod?.[0];
 
     const incident = this.incidentRepo.create({
       externalId: externalId,
       source: 'GTFS_RT',
+      trainId: inferredImpact.primaryTrainId,
+      stationId: inferredImpact.primaryStationId,
       incidentType: type,
       severity,
       estimatedDelayMinutes: estimatedDelay,
       routeIds,
+      affectedTrainIds: inferredImpact.affectedTrainIds,
+      affectedStationIds: inferredImpact.affectedStationIds,
       affectedStopIds: stopIds,
       description: [header, description].filter(Boolean).join('\n'),
       language: alert?.descriptionText?.translation?.[0]?.language ?? 'es',
@@ -79,8 +89,9 @@ export class AlertClassifierService {
         ? new Date(activePeriod.end * 1000)
         : null,
       status: 'active',
+      metadata: null,
       raw: alert as Record<string, unknown>,
-    } as IncidentArchiveEntity);
+    });
 
     await this.incidentRepo.save(incident);
     this.logger.log(`Classified ${externalId} as ${type} (${severity})`);
@@ -250,7 +261,10 @@ export class AlertClassifierService {
     trainId: string,
   ): Promise<IncidentArchiveEntity[]> {
     return this.getActiveIncidents((qb) =>
-      qb.where('i.trainId = :trainId', { trainId }),
+      qb.where('i.trainId = :trainId', { trainId }).orWhere(
+        'i.affectedTrainIds && ARRAY[:trainId]',
+        { trainId },
+      ),
     );
   }
 
@@ -265,10 +279,24 @@ export class AlertClassifierService {
   ): Promise<IncidentArchiveEntity[]> {
     return this.getActiveIncidents((qb) =>
       qb.where('i.stationId = :stationId', { stationId }).orWhere(
+        'i.affectedStationIds && ARRAY[:stationId]',
+        { stationId },
+      ).orWhere(
         'i.affectedStopIds && ARRAY[:stationId]',
         { stationId },
       ),
     );
+  }
+
+  /**
+   * Returns all currently active incidents.
+   *
+   * @returns Active incidents ordered by severity and start time.
+   */
+  async getAllActiveIncidents(): Promise<IncidentArchiveEntity[]> {
+    return this.getActiveIncidents(() => {
+      // Intentionally no extra filter: caller needs full active incident snapshot.
+    });
   }
 
   /**
